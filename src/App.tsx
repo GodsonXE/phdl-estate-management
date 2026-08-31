@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePhdlStore } from './data/storage';
 import { Role } from './types';
 import { Sidebar, ActivePage } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
 import { PhdlAppLoader } from './components/common/PhdlAppLoader';
+import { LandingPage } from './pages/landing/LandingPage';
+import { TenantOnboardingWizard } from './components/onboarding/TenantOnboardingWizard';
 
 // Core Dashboards
 import { AdminDashboard } from './pages/dashboards/AdminDashboard';
@@ -43,6 +45,8 @@ export const App: React.FC = () => {
   const store = usePhdlStore();
   const [activeRole, setActiveRole] = useState<Role>(() => store.getActiveRole());
   const [isLoading, setIsLoading] = useState(true);
+  const [showLanding, setShowLanding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const getDefaultPageForRole = (role: string): ActivePage => {
     if (role === 'soldier') return 'soldier_dashboard';
@@ -55,14 +59,14 @@ export const App: React.FC = () => {
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Instant reactive role switching with zero delay or reload
   const handleRoleSwitch = (newRole: Role) => {
     store.setActiveRole(newRole);
     setActiveRole(newRole);
     setCurrentPage(getDefaultPageForRole(newRole));
+    setShowLanding(false);
   };
 
-  // Sync active page if external role changes
+  // Sync active page if role changes
   useEffect(() => {
     if (activeRole === 'soldier' && !currentPage.startsWith('soldier_') && currentPage !== 'profile' && currentPage !== 'settings' && currentPage !== 'user_profile') {
       setCurrentPage('soldier_dashboard');
@@ -80,9 +84,6 @@ export const App: React.FC = () => {
   // Page View Switcher
   const renderContent = () => {
     switch (currentPage) {
-      // =============================================================
-      // 1. SUPERADMIN HQ ROUTES
-      // =============================================================
       case 'admin_dashboard':
         return <AdminDashboard onNavigate={setCurrentPage} />;
       case 'soldier_onboarding':
@@ -113,9 +114,6 @@ export const App: React.FC = () => {
       case 'maintenance':
         return <MaintenancePage />;
 
-      // =============================================================
-      // 2. SOLDIER LANDLORD ROUTES
-      // =============================================================
       case 'soldier_dashboard':
         return <SoldierDashboard onNavigate={setCurrentPage} />;
       case 'soldier_properties':
@@ -129,9 +127,6 @@ export const App: React.FC = () => {
       case 'soldier_settings':
         return <UserProfilePage />;
 
-      // =============================================================
-      // 3. RESIDENT TENANT ROUTES
-      // =============================================================
       case 'tenant_dashboard':
         return <TenantDashboard onNavigate={setCurrentPage} />;
       case 'tenant_profile':
@@ -145,7 +140,6 @@ export const App: React.FC = () => {
       case 'tenant_settings':
         return <UserProfilePage />;
 
-      // Common Settings & Profile Fallbacks
       case 'settings':
         return activeRole === 'phdl_admin' ? <SystemSettingsPage /> : <UserProfilePage />;
       case 'profile':
@@ -162,6 +156,21 @@ export const App: React.FC = () => {
         );
     }
   };
+
+  if (showLanding) {
+    return (
+      <>
+        {isLoading && <PhdlAppLoader onComplete={() => setIsLoading(false)} />}
+        <LandingPage
+          onSelectRole={(role) => handleRoleSwitch(role)}
+          onStartOnboarding={() => {
+            setShowLanding(false);
+            setShowOnboarding(true);
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -218,6 +227,11 @@ export const App: React.FC = () => {
           </main>
         </div>
       </div>
+
+      {/* Onboarding Wizard Modal */}
+      {showOnboarding && (
+        <TenantOnboardingWizard onClose={() => setShowOnboarding(false)} />
+      )}
     </>
   );
 };
