@@ -152,7 +152,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
             }}
           >
-            Centralized digital ecosystem for <strong>PHDL Estates</strong> — overseeing Soldier Landlord allocations, civilian tenancy agreements, service charge billing, 24/7 QR gate passes, and military command security concerns, nationwide.
+            Centralized digital ecosystem for <strong>PHDL Estates</strong> ï¿½ overseeing Soldier Landlord allocations, civilian tenancy agreements, service charge billing, 24/7 QR gate passes, and military command security concerns, nationwide.
           </p>
 
           {/* Primary Action Buttons */}
@@ -317,12 +317,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             <PhdlLogo size={36} />
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#FFFFFF' }}>POST-SERVICE HOUSING DEVELOPMENT LIMITED</div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>FEDERAL REPUBLIC OF NIGERIA • RC 676563</div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>FEDERAL REPUBLIC OF NIGERIA ï¿½ RC 676563</div>
             </div>
           </div>
           <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'right' }}>
-            <div>PHDL Unity Estate HQ • Kurudu, Abuja FCT</div>
-            <div style={{ marginTop: '0.2rem', color: '#F59E0B' }}>© {new Date().getFullYear()} PHDL Nigeria. All Rights Reserved.</div>
+            <div>PHDL Unity Estate HQ ï¿½ Kurudu, Abuja FCT</div>
+            <div style={{ marginTop: '0.2rem', color: '#F59E0B' }}>ï¿½ {new Date().getFullYear()} PHDL Nigeria. All Rights Reserved.</div>
           </div>
         </div>
       </footer>
