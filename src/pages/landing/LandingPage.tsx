@@ -531,7 +531,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             </div>
           </div>
           <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-            <div>PHDL Unity Estate HQ • Kurudu, Abuja FCT</div>
+            <div>PHDL Unity Estate HQ • Idu, Abuja FCT</div>
             <div style={{ marginTop: '0.2rem', color: '#F59E0B' }}>© {new Date().getFullYear()} PHDL Estates Nigeria. All Rights Reserved.</div>
           </div>
         </div>
