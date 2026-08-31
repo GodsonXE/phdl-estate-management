@@ -1,4 +1,4 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { PhdlLogo } from '../../components/common/PhdlLogo';
 import { Role } from '../../types';
 import {
@@ -152,7 +152,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
             }}
           >
-            Centralized digital ecosystem for <strong>PHDL Estates</strong> â€” overseeing Soldier Landlord allocations, civilian tenancy agreements, service charge billing, 24/7 QR gate passes, and military command security concerns, nationwide.
+            Centralized digital ecosystem for <strong>PHDL Estates</strong> — overseeing Soldier Landlord allocations, civilian tenancy agreements, service charge billing, 24/7 QR gate passes, and military command security concerns, nationwide.
           </p>
 
           {/* Primary Action Buttons */}
@@ -219,7 +219,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.2rem' }}>Zoned Infrastructure & Night Patrols</div>
             </div>
             <div style={{ backgroundColor: 'rgba(7, 26, 11, 0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', padding: '1.25rem' }}>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#FCD34D' }}>â‚¦10k / mo</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#FCD34D' }}>?10k / mo</div>
               <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.2rem' }}>Standardized Service Charge Levy</div>
             </div>
             <div style={{ backgroundColor: 'rgba(7, 26, 11, 0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', padding: '1.25rem' }}>
@@ -249,7 +249,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#991B1B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Shield size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(153, 27, 27, 0.3)', color: '#FCA5A5', padding: '4px 10px', borderRadius 4, fontSize: '0.72rem', fontWeight: 800 }}>COMMAND HQ</span>
+                <span style={{ backgroundColor: 'rgba(153, 27, 27, 0.3)', color: '#FCA5A5', padding: '4px 10px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>COMMAND HQ</span>
               </div>
               <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>PHDL SuperAdmin HQ</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
@@ -271,7 +271,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Building size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(21, 128, 61, 0.3)', color: '#86EFAC', padding: '4px 10px', borderRadius 4, fontSize: '0.72rem', fontWeight: 800 }}>ALLOCATEE / OWNER</span>
+                <span style={{ backgroundColor: 'rgba(21, 128, 61, 0.3)', color: '#86EFAC', padding: '4px 10px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>ALLOCATEE / OWNER</span>
               </div>
               <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>Soldier Landlord Portal</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
@@ -293,11 +293,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Users size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', color: '#FDE68A', padding: '4px 10px', borderRadius 4, fontSize: '0.72rem', fontWeight: 800 }}>VERIFIED RESIDENT</span>
+                <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', color: '#FDE68A', padding: '4px 10px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>VERIFIED RESIDENT</span>
               </div>
               <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>Civilian Resident Portal</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
-                For estate tenants: pay â‚¦10,000/month service charge levies, view digital tenancy agreements, and generate smart QR gate passes.
+                For estate tenants: pay ?10,000/month service charge levies, view digital tenancy agreements, and generate smart QR gate passes.
               </p>
             </div>
             <button
@@ -317,12 +317,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             <PhdlLogo size={36} />
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#FFFFFF' }}>POST-SERVICE HOUSING DEVELOPMENT LIMITED</div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>FEDERAL REPUBLIC OF NIGERIA â€¢ RC 676563</div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>FEDERAL REPUBLIC OF NIGERIA • RC 676563</div>
             </div>
           </div>
           <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'right' }}>
-            <div>PHDL Unity Estate HQ â€¢ Kurudu, Abuja FCT</div>
-            <div style={{ marginTop: '0.2rem', color: '#F59E0B' }}>Â© {new Date().getFullYear()} PHDL Nigeria. All Rights Reserved.</div>
+            <div>PHDL Unity Estate HQ • Kurudu, Abuja FCT</div>
+            <div style={{ marginTop: '0.2rem', color: '#F59E0B' }}>© {new Date().getFullYear()} PHDL Nigeria. All Rights Reserved.</div>
           </div>
         </div>
       </footer>
