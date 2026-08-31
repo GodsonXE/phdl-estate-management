@@ -105,7 +105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   HEADQUARTERS COMMAND
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--army-gold-300)', fontWeight: 700 }}>
-                  POST-SERVICE HOUSING DEVELOPMENT LIMITED • RC 676563
+                  PHDL Estates • RC 676563
                 </span>
               </div>
               <h1 style={{ color: '#FFFFFF', fontSize: '1.65rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>

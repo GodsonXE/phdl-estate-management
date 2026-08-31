@@ -213,9 +213,19 @@ export const App: React.FC = () => {
           width: '100vw',
           overflow: 'hidden',
           backgroundColor: 'var(--bg-primary, #F8FAFC)',
+          position: 'relative',
         }}
       >
-        {/* Fixed Sidebar */}
+        {/* Mobile Backdrop Overlay */}
+        {sidebarOpen && (
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation overlay"
+          />
+        )}
+
+        {/* Fixed / Mobile Drawer Sidebar */}
         <Sidebar
           activePage={currentPage}
           currentRole={activeRole}
@@ -247,10 +257,11 @@ export const App: React.FC = () => {
           />
 
           <main
+            className="app-main-content"
             style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '1.75rem',
+              padding: 'clamp(0.85rem, 2vw, 1.75rem)',
             }}
           >
             <div style={{ maxWidth: 1280, margin: '0 auto' }}>

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { usePhdlStore } from '../../data/storage';
 import { Role } from '../../types';
 import { PhdlLogo } from '../common/PhdlLogo';
@@ -36,6 +36,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
     setShowRoleDropdown(false);
   };
 
+  const getRoleBadgeLabel = (role: Role) => {
+    switch (role) {
+      case 'phdl_admin':
+        return 'SuperAdmin HQ';
+      case 'soldier':
+        return 'Soldier Landlord';
+      case 'tenant':
+        return 'Civilian Resident';
+      default:
+        return 'User';
+    }
+  };
+
+  const getRoleShortLabel = (role: Role) => {
+    switch (role) {
+      case 'phdl_admin':
+        return 'HQ Admin';
+      case 'soldier':
+        return 'Landlord';
+      case 'tenant':
+        return 'Resident';
+      default:
+        return 'User';
+    }
+  };
+
   return (
     <header
       className="navbar"
@@ -43,74 +69,99 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '0.75rem 1.5rem',
+        padding: '0.65rem clamp(0.75rem, 2vw, 1.5rem)',
         backgroundColor: '#FFFFFF',
         borderBottom: '1px solid var(--border-light, #E2E8F0)',
-        minHeight: '64px',
+        minHeight: '60px',
         width: '100%',
         boxSizing: 'border-box',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
       }}
     >
-      {/* Brand Title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {/* Brand Title & Mobile Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            className="btn btn-ghost btn-sm mobile-toggle"
-            style={{ display: 'none' }}
+            className="navbar-mobile-toggle"
+            aria-label="Open Navigation Menu"
+            style={{
+              padding: '0.4rem',
+              borderRadius: '6px',
+              border: '1px solid var(--border-subtle, #CBD5E1)',
+              backgroundColor: '#F8FAFC',
+              color: 'var(--army-green-950, #0B2410)',
+              cursor: 'pointer',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
             <Menu size={20} />
           </button>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <PhdlLogo size={36} />
-          <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', minWidth: 0 }}>
+          <PhdlLogo size={34} />
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
             <div
               style={{
-                fontWeight: 800,
-                fontSize: '0.88rem',
+                fontWeight: 900,
+                fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
                 color: 'var(--army-green-950, #0B2410)',
-                lineHeight: 1.2,
+                lineHeight: 1.15,
+                letterSpacing: '0.02em',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden',
               }}
             >
               PHDL Estates
             </div>
             <div
+              className="navbar-subtitle"
               style={{
-                fontSize: '0.7rem',
+                fontSize: '0.68rem',
                 color: 'var(--text-subtle, #64748B)',
                 fontWeight: 600,
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden',
               }}
             >
-              FEDERAL REPUBLIC OF NIGERIA • RC 676563
+              RC 676563 • {currentEstate?.name || 'Unity Estate'}
             </div>
           </div>
         </div>
       </div>
 
       {/* Role Persona Switcher & Sign Out */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-            className="btn btn-outline btn-sm"
+            className="btn btn-outline btn-sm role-switcher-btn"
             style={{
-              gap: '0.4rem',
+              gap: '0.35rem',
               borderColor: 'var(--army-green-800, #1B4D21)',
               fontWeight: 700,
               backgroundColor: '#FFFFFF',
               color: 'var(--army-green-950, #0B2410)',
+              padding: '0.4rem 0.65rem',
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
             <Shield size={14} color="var(--army-green-800, #1B4D21)" />
-            <span>
-              Role:{' '}
-              {effectiveRole === 'phdl_admin'
-                ? 'SuperAdmin HQ'
-                : effectiveRole === 'soldier'
-                  ? 'Soldier Landlord'
-                  : 'Civilian Resident'}
+            <span className="role-btn-full-text">
+              Role: {getRoleBadgeLabel(effectiveRole)}
+            </span>
+            <span className="role-btn-short-text">
+              {getRoleShortLabel(effectiveRole)}
             </span>
             <ChevronDown size={14} />
           </button>
@@ -123,12 +174,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                 top: '100%',
                 right: 0,
                 marginTop: '0.4rem',
-                minWidth: '260px',
+                width: 'max-content',
+                minWidth: '240px',
+                maxWidth: 'calc(100vw - 1.5rem)',
                 zIndex: 1000,
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
                 padding: '0.5rem',
                 backgroundColor: '#FFFFFF',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid #E2E8F0',
               }}
             >
@@ -155,10 +208,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                   display: 'block',
                 }}
               >
-                <strong style={{ fontSize: '0.85rem', color: '#0B2410' }}>
+                <strong style={{ fontSize: '0.82rem', color: '#0B2410' }}>
                   Col. Farouk Danjuma (Rtd.)
                 </strong>
-                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
                   PHDL SuperAdmin HQ
                 </div>
               </button>
@@ -175,10 +228,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                   display: 'block',
                 }}
               >
-                <strong style={{ fontSize: '0.85rem', color: '#0B2410' }}>
+                <strong style={{ fontSize: '0.82rem', color: '#0B2410' }}>
                   Staff Sgt. Adamu Mohammed
                 </strong>
-                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
                   Soldier Owner (Flat L1H1A)
                 </div>
               </button>
@@ -195,10 +248,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                   display: 'block',
                 }}
               >
-                <strong style={{ fontSize: '0.85rem', color: '#0B2410' }}>
+                <strong style={{ fontSize: '0.82rem', color: '#0B2410' }}>
                   Emeka Gabriel Okon
                 </strong>
-                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
                   Tenant Resident (Flat L1H1A)
                 </div>
               </button>
@@ -216,6 +269,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                   gap: '0.4rem',
                   backgroundColor: '#1B4D21',
                   color: '#FFFFFF',
+                  padding: '0.5rem',
+                  fontSize: '0.78rem',
                 }}
               >
                 <Sparkles size={14} />
@@ -229,7 +284,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
         {onLogout && (
           <button
             onClick={onLogout}
-            className="btn btn-sm"
+            className="btn btn-sm signout-btn"
             style={{
               gap: '0.35rem',
               backgroundColor: '#FEF2F2',
@@ -237,11 +292,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
               color: '#991B1B',
               fontWeight: 800,
               cursor: 'pointer',
+              padding: '0.4rem 0.65rem',
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
             }}
             title="Sign Out to Public Landing Page"
           >
             <LogOut size={14} />
-            <span>Sign Out</span>
+            <span className="signout-text">Sign Out</span>
           </button>
         )}
       </div>

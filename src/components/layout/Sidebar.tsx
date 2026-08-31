@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { usePhdlStore } from '../../data/storage';
 import { PhdlLogo } from '../common/PhdlLogo';
 import {
@@ -17,6 +17,7 @@ import {
   Megaphone,
   Wrench,
   LogOut,
+  X,
 } from 'lucide-react';
 
 import { Role } from '../../types';
@@ -62,7 +63,7 @@ export interface SidebarProps {
   onLogout?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, currentRole, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, currentRole, isOpen, onClose, onLogout }) => {
   const store = usePhdlStore();
   const effectiveRole = currentRole || store.getActiveRole();
   const currentEstateId = store.getActiveEstateId();
@@ -77,6 +78,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
         onClick={() => {
           if (typeof onNavigate === 'function') {
             onNavigate(page);
+          }
+          if (onClose) {
+            onClose();
           }
         }}
         style={{
@@ -120,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
 
   return (
     <aside
-      className="sidebar"
+      className={`sidebar ${isOpen ? 'open' : ''}`}
       style={{
         width: '260px',
         minWidth: '260px',
@@ -140,22 +144,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
-          padding: '1.25rem 1rem',
+          justifyContent: 'space-between',
+          padding: '1.15rem 1rem',
           borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           backgroundColor: '#071A0B',
           flexShrink: 0,
         }}
       >
-        <PhdlLogo size={38} />
-        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-          <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#FFFFFF', letterSpacing: '0.04em' }}>
-            PHDL HOUSING
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#FBBF24', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            RC 676563 • {estate?.name || 'Unity Estate'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
+          <PhdlLogo size={36} />
+          <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#FFFFFF', letterSpacing: '0.03em' }}>
+              PHDL Estates
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#FBBF24', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              RC 676563 • {estate?.name || 'Unity Estate'}
+            </div>
           </div>
         </div>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="sidebar-close-btn"
+            aria-label="Close sidebar"
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '6px',
+              color: '#FFFFFF',
+              padding: '0.35rem',
+              cursor: 'pointer',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* 2. SCROLLABLE NAVIGATION LIST */}
@@ -220,7 +247,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
         <div style={{ padding: '0.5rem 0.65rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <button
             type="button"
-            onClick={onLogout}
+            onClick={() => {
+              if (onClose) onClose();
+              onLogout();
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
