@@ -125,7 +125,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             </div>
           </div>
 
-          {/* Main Title - Increased by 120% */}
+          {/* Main Title */}
           <h1
             style={{
               fontSize: 'clamp(2.8rem, 5.8vw, 4.6rem)',
@@ -141,18 +141,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             Modern Armed Forces Housing & Residential Administration
           </h1>
 
-          {/* Subheading - Reduced to 80% */}
+          {/* Updated Subheading */}
           <p
             style={{
               fontSize: 'clamp(0.85rem, 1.35vw, 0.96rem)',
               color: 'rgba(255, 255, 255, 0.82)',
               lineHeight: 1.6,
-              maxWidth: 720,
+              maxWidth: 760,
               margin: '0 auto 2.25rem',
               textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
             }}
           >
-            Centralized digital ecosystem for <strong>PHDL Unity Estate</strong> — overseeing Soldier Landlord allocations, civilian tenancy agreements, ₦10,000/mo service charge billing, 24/7 QR gate passes, and military command security.
+            Centralized digital ecosystem for <strong>PHDL Estates</strong> — overseeing Soldier Landlord allocations, civilian tenancy agreements, service charge billing, 24/7 QR gate passes, and military command security concerns, nationwide.
           </p>
 
           {/* Primary Action Buttons */}
@@ -249,7 +249,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#991B1B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Shield size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(153, 27, 27, 0.3)', color: '#FCA5A5', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>COMMAND HQ</span>
+                <span style={{ backgroundColor: 'rgba(153, 27, 27, 0.3)', color: '#FCA5A5', padding: '4px 10px', borderRadius 4, fontSize: '0.72rem', fontWeight: 800 }}>COMMAND HQ</span>
               </div>
               <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>PHDL SuperAdmin HQ</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
@@ -271,7 +271,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Building size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(21, 128, 61, 0.3)', color: '#86EFAC', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>ALLOCATEE / OWNER</span>
+                <span style={{ backgroundColor: 'rgba(21, 128, 61, 0.3)', color: '#86EFAC', padding: '4px 10px', borderRadius 4, fontSize: '0.72rem', fontWeight: 800 }}>ALLOCATEE / OWNER</span>
               </div>
               <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>Soldier Landlord Portal</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
@@ -293,7 +293,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Users size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', color: '#FDE68A', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>VERIFIED RESIDENT</span>
+                <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', color: '#FDE68A', padding: '4px 10px', borderRadius 4, fontSize: '0.72rem', fontWeight: 800 }}>VERIFIED RESIDENT</span>
               </div>
               <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>Civilian Resident Portal</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
