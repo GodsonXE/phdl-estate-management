@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React from 'react';
 
 export interface PhdlLogoProps {
   size?: number;
@@ -7,41 +7,13 @@ export interface PhdlLogoProps {
 }
 
 export const PhdlLogo: React.FC<PhdlLogoProps> = ({ size = 40, className, style }) => {
-  const [hasError, setHasError] = useState(false);
-
-  if (hasError) {
-    // Fallback if image path is unavailable
-    return (
-      <div
-        className={className}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          backgroundColor: '#071A0B',
-          border: '2px solid #F59E0B',
-          color: '#F59E0B',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 900,
-          fontSize: size * 0.35,
-          ...style,
-        }}
-      >
-        PHDL
-      </div>
-    );
-  }
-
   return (
     <img
       src="/phdl-logo.png"
-      alt="Post-Service Housing Development Limited (PHDL) Official Crest Logo"
+      alt="PHDL Official Logo"
       width={size}
       height={size}
       className={className}
-      onError={() => setHasError(true)}
       style={{
         width: size,
         height: size,
