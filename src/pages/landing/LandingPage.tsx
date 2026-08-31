@@ -94,7 +94,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
       <section
         style={{
           position: 'relative',
-          minHeight: '85vh',
+          minHeight: '88vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -105,52 +105,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
           backgroundRepeat: 'no-repeat',
         }}
       >
-        <div style={{ maxWidth: 1100, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 2 }}>
-          {/* Eyebrow Badge */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              borderRadius: '999px',
-              padding: '0.35rem 1rem',
-              color: '#FCD34D',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              marginBottom: '1.5rem',
-            }}
-          >
-            <Shield size={14} color="#F59E0B" />
-            Official Housing Command Platform • 404 Residential Units
+        <div style={{ maxWidth: 1150, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+          {/* PHDL CREST LOGO IN HERO */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <div
+              style={{
+                width: 86,
+                height: 86,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(7, 26, 11, 0.85)',
+                border: '2px solid rgba(245, 158, 11, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 25px rgba(245, 158, 11, 0.35)',
+              }}
+            >
+              <PhdlLogo size={68} />
+            </div>
           </div>
 
-          {/* Main Title */}
+          {/* Main Title - Increased by 120% */}
           <h1
             style={{
-              fontSize: 'clamp(2.2rem, 4.5vw, 3.6rem)',
-              fontWeight: 900,
-              lineHeight: 1.15,
+              fontSize: 'clamp(2.8rem, 5.8vw, 4.6rem)',
+              fontWeight: 950,
+              lineHeight: 1.12,
               color: '#FFFFFF',
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.035em',
               margin: '0 auto 1.25rem',
-              textShadow: '0 4px 16px rgba(0, 0, 0, 0.7)',
+              textShadow: '0 4px 20px rgba(0, 0, 0, 0.85)',
+              maxWidth: 1000,
             }}
           >
             Modern Armed Forces Housing & Residential Administration
           </h1>
 
-          {/* Subheading */}
+          {/* Subheading - Reduced to 80% */}
           <p
             style={{
-              fontSize: 'clamp(1rem, 1.8vw, 1.2rem)',
-              color: 'rgba(255, 255, 255, 0.85)',
+              fontSize: 'clamp(0.85rem, 1.35vw, 0.96rem)',
+              color: 'rgba(255, 255, 255, 0.82)',
               lineHeight: 1.6,
-              maxWidth: 820,
-              margin: '0 auto 2.5rem',
+              maxWidth: 720,
+              margin: '0 auto 2.25rem',
               textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
             }}
           >
