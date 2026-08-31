@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React from 'react';
 import { PhdlLogo } from '../../components/common/PhdlLogo';
 import { Role } from '../../types';
 import {
@@ -9,32 +9,15 @@ import {
   Lock,
   ArrowRight,
   CheckCircle2,
-  Phone,
-  Mail,
-  MapPin,
-  IdCard,
   Sparkles,
-  KeyRound,
-  FileCheck,
   ChevronRight,
-  Clock,
-  ExternalLink,
 } from 'lucide-react';
 
 interface LandingPageProps {
-  onSelectRole: (role: Role) => void;
-  onStartOnboarding: () => void;
+  onNavigateToAuth: (mode: 'login' | 'register', role?: Role) => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartOnboarding }) => {
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [selectedAuthRole, setSelectedAuthRole] = useState<Role>('phdl_admin');
-
-  const handleQuickLogin = (role: Role) => {
-    onSelectRole(role);
-  };
-
+export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#030E06', color: '#FFFFFF', fontFamily: 'var(--font-sans, system-ui, sans-serif)', overflowX: 'hidden' }}>
       {/* 1. TOP ANNOUNCEMENT BAR */}
@@ -70,7 +53,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          backgroundColor: 'rgba(7, 26, 11, 0.92)',
+          backgroundColor: 'rgba(7, 26, 11, 0.94)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(245, 158, 11, 0.25)',
           padding: '0.75rem 2rem',
@@ -91,25 +74,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
           </div>
         </div>
 
-        {/* Navigation Links & Action CTAs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <a href="#about" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600 }}>
-            Estate Architecture
-          </a>
-          <a href="#portals" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600 }}>
-            Access Portals
-          </a>
-          <a href="#security" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600 }}>
-            Security & Gate
-          </a>
-
+        {/* Navigation CTAs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
-            onClick={() => {
-              setAuthMode('login');
-              setShowAuthModal(true);
-            }}
+            onClick={() => onNavigateToAuth('login')}
             style={{
-              padding: '0.5rem 1.15rem',
+              padding: '0.55rem 1.25rem',
               borderRadius: '6px',
               backgroundColor: 'transparent',
               border: '1.5px solid #F59E0B',
@@ -127,9 +97,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
           </button>
 
           <button
-            onClick={onStartOnboarding}
+            onClick={() => onNavigateToAuth('register')}
             style={{
-              padding: '0.5rem 1.15rem',
+              padding: '0.55rem 1.25rem',
               borderRadius: '6px',
               backgroundColor: '#991B1B',
               border: 'none',
@@ -164,10 +134,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
           backgroundRepeat: 'no-repeat',
         }}
       >
-        {/* Subtle Military Red & Gold Glow Accents */}
-        <div style={{ position: 'absolute', top: '10%', left: '5%', width: '350px', height: '350px', background: 'radial-gradient(circle, rgba(153, 27, 27, 0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '10%', right: '5%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
         <div style={{ maxWidth: 1100, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 2 }}>
           {/* Eyebrow Badge */}
           <div
@@ -191,7 +157,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
             Official Housing Command Platform • 404 Residential Units
           </div>
 
-          {/* Main Hero Title */}
+          {/* Main Title */}
           <h1
             style={{
               fontSize: 'clamp(2.2rem, 4.5vw, 3.6rem)',
@@ -223,10 +189,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
           {/* Primary Action Buttons */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <button
-              onClick={() => {
-                setAuthMode('login');
-                setShowAuthModal(true);
-              }}
+              onClick={() => onNavigateToAuth('login')}
               style={{
                 padding: '0.95rem 2rem',
                 borderRadius: '8px',
@@ -241,14 +204,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
                 alignItems: 'center',
                 gap: '0.6rem',
                 boxShadow: '0 6px 20px rgba(21, 128, 61, 0.45)',
-                transition: 'all 0.2s ease',
               }}
             >
               <Lock size={18} /> Access Security Portal <ArrowRight size={18} />
             </button>
 
             <button
-              onClick={onStartOnboarding}
+              onClick={() => onNavigateToAuth('register')}
               style={{
                 padding: '0.95rem 2rem',
                 borderRadius: '8px',
@@ -263,14 +225,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
                 alignItems: 'center',
                 gap: '0.6rem',
                 boxShadow: '0 6px 20px rgba(153, 27, 27, 0.45)',
-                transition: 'all 0.2s ease',
               }}
             >
-              <Sparkles size={18} /> Resident & Landlord Registration
+              <Sparkles size={18} /> Create Resident Account
             </button>
           </div>
 
-          {/* 4 Key Real-Time Estate Stats */}
+          {/* 4 Stats Grid */}
           <div
             style={{
               display: 'grid',
@@ -301,377 +262,98 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onStartO
       </section>
 
       {/* 4. THREE DEDICATED PORTAL ROLES */}
-      <section id="portals" style={{ padding: '5rem 2rem', maxWidth: 1200, margin: '0 auto' }}>
+      <section style={{ padding: '5rem 2rem', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <div style={{ color: '#F59E0B', fontWeight: 800, fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             ROLE-BASED COMMAND TIERS
           </div>
           <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#FFFFFF', marginTop: '0.35rem' }}>
-            Choose Your Access Portal
+            Select Your Clearance Portal
           </h2>
-          <p style={{ color: 'rgba(255, 255, 255, 0.65)', maxWidth: 600, margin: '0.5rem auto 0' }}>
-            Select your persona to enter the specialized operational environment.
-          </p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {/* CARD 1: SUPERADMIN HQ */}
-          <div
-            style={{
-              backgroundColor: 'rgba(10, 36, 15, 0.75)',
-              border: '1.5px solid rgba(153, 27, 27, 0.6)',
-              borderRadius: '12px',
-              padding: '2rem',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              transition: '0.2s',
-            }}
-          >
+          {/* SUPERADMIN */}
+          <div style={{ backgroundColor: 'rgba(10, 36, 15, 0.75)', border: '1.5px solid rgba(153, 27, 27, 0.6)', borderRadius: '12px', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#991B1B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Shield size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(153, 27, 27, 0.3)', color: '#FCA5A5', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>
-                  COMMAND HQ
-                </span>
+                <span style={{ backgroundColor: 'rgba(153, 27, 27, 0.3)', color: '#FCA5A5', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>COMMAND HQ</span>
               </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>
-                PHDL SuperAdmin HQ
-              </h3>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>PHDL SuperAdmin HQ</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
-                Master estate administration: 8-lane hierarchy oversight, tariff & levy control, bulk SMS/email broadcasts, officer privilege delegation, and signature stamp verification.
+                Master estate administration: 8-lane hierarchy oversight, tariff & levy control, bulk SMS/email broadcasts, and signature stamp verification.
               </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '1.2rem 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.85)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#F59E0B" /> 404 Housing Units Directory & Meter Sync
-                </li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#F59E0B" /> Official Signature Stamp & Cryptographic Export
-                </li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#F59E0B" /> SuperAdmin Bulk SMS (Termii / BulkSMSNigeria)
-                </li>
-              </ul>
             </div>
             <button
-              onClick={() => handleQuickLogin('phdl_admin')}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: '#991B1B',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
+              onClick={() => onNavigateToAuth('login', 'phdl_admin')}
+              style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', backgroundColor: '#991B1B', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
-              Enter SuperAdmin HQ <ChevronRight size={16} />
+              Sign In as SuperAdmin HQ <ChevronRight size={16} />
             </button>
           </div>
 
-          {/* CARD 2: SOLDIER LANDLORD */}
-          <div
-            style={{
-              backgroundColor: 'rgba(10, 36, 15, 0.75)',
-              border: '1.5px solid rgba(21, 128, 61, 0.6)',
-              borderRadius: '12px',
-              padding: '2rem',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              transition: '0.2s',
-            }}
-          >
+          {/* SOLDIER */}
+          <div style={{ backgroundColor: 'rgba(10, 36, 15, 0.75)', border: '1.5px solid rgba(21, 128, 61, 0.6)', borderRadius: '12px', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Building size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(21, 128, 61, 0.3)', color: '#86EFAC', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>
-                  ALLOCATEE / OWNER
-                </span>
+                <span style={{ backgroundColor: 'rgba(21, 128, 61, 0.3)', color: '#86EFAC', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>ALLOCATEE / OWNER</span>
               </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>
-                Soldier Landlord Portal
-              </h3>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>Soldier Landlord Portal</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
-                For military allocatees: monitor allocated housing flats, track rental payouts & revenue, review subletting civilian tenant profiles, and issue digital passes.
+                For military allocatees: monitor allocated housing flats, track rental payouts & revenue, and review subletting civilian tenant profiles.
               </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '1.2rem 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.85)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#22C55E" /> Allocated Unit Property Management
-                </li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#22C55E" /> Rent Payment Remittance Tracking
-                </li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#22C55E" /> Armed Forces Gate Pass Identification
-                </li>
-              </ul>
             </div>
             <button
-              onClick={() => handleQuickLogin('soldier')}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: '#15803D',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
+              onClick={() => onNavigateToAuth('login', 'soldier')}
+              style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', backgroundColor: '#15803D', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
-              Enter Soldier Portal <ChevronRight size={16} />
+              Sign In as Soldier Landlord <ChevronRight size={16} />
             </button>
           </div>
 
-          {/* CARD 3: CIVILIAN RESIDENT TENANT */}
-          <div
-            style={{
-              backgroundColor: 'rgba(10, 36, 15, 0.75)',
-              border: '1.5px solid rgba(245, 158, 11, 0.6)',
-              borderRadius: '12px',
-              padding: '2rem',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              transition: '0.2s',
-            }}
-          >
+          {/* TENANT */}
+          <div style={{ backgroundColor: 'rgba(10, 36, 15, 0.75)', border: '1.5px solid rgba(245, 158, 11, 0.6)', borderRadius: '12px', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
                 <div style={{ width: 46, height: 46, borderRadius: '8px', backgroundColor: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Users size={24} color="#FFFFFF" />
                 </div>
-                <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', color: '#FDE68A', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>
-                  VERIFIED RESIDENT
-                </span>
+                <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', color: '#FDE68A', padding: '4px 10px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 800 }}>VERIFIED RESIDENT</span>
               </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>
-                Civilian Resident Portal
-              </h3>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 0.5rem' }}>Civilian Resident Portal</h3>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5 }}>
-                For estate tenants: pay ₦10,000/month service charge levies, view digital tenancy agreements, manage registered dependents, and log maintenance tickets.
+                For estate tenants: pay ₦10,000/month service charge levies, view digital tenancy agreements, and generate smart QR gate passes.
               </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '1.2rem 0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.85)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#F59E0B" /> Pay Monthly Levies via Paystack / Flutterwave
-                </li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#F59E0B" /> Household Dependents Gate Clearances
-                </li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <CheckCircle2 size={15} color="#F59E0B" /> Instant Digital Smart QR Gate Pass
-                </li>
-              </ul>
             </div>
             <button
-              onClick={() => handleQuickLogin('tenant')}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: '#D97706',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
+              onClick={() => onNavigateToAuth('login', 'tenant')}
+              style={{ marginTop: '1.5rem', width: '100%', padding: '0.75rem', backgroundColor: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
-              Enter Resident Portal <ChevronRight size={16} />
+              Sign In as Resident Tenant <ChevronRight size={16} />
             </button>
           </div>
         </div>
       </section>
 
-      {/* 5. AUTHENTICATION / SIGN-IN MODAL */}
-      {showAuthModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#071A0B',
-              border: '2px solid rgba(245, 158, 11, 0.4)',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: 460,
-              padding: '2rem',
-              color: '#FFFFFF',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <PhdlLogo size={36} />
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#FFFFFF' }}>
-                    Command Portal Sign-In
-                  </h3>
-                  <div style={{ fontSize: '0.72rem', color: '#F59E0B' }}>Select Your Official Persona</div>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAuthModal(false)}
-                style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: '1.2rem', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', margin: '1.5rem 0' }}>
-              <button
-                onClick={() => {
-                  setShowAuthModal(false);
-                  onSelectRole('phdl_admin');
-                }}
-                style={{
-                  padding: '0.85rem 1rem',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(153, 27, 27, 0.25)',
-                  border: '1.5px solid #991B1B',
-                  color: '#FFFFFF',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                }}
-              >
-                <Shield size={18} color="#EF4444" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>Col. Farouk Danjuma (Rtd.)</div>
-                  <div style={{ fontSize: '0.72rem', color: '#FCA5A5' }}>SuperAdmin HQ Clearance</div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowAuthModal(false);
-                  onSelectRole('soldier');
-                }}
-                style={{
-                  padding: '0.85rem 1rem',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(21, 128, 61, 0.25)',
-                  border: '1.5px solid #15803D',
-                  color: '#FFFFFF',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                }}
-              >
-                <Building size={18} color="#22C55E" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>Staff Sgt. Adamu Mohammed</div>
-                  <div style={{ fontSize: '0.72rem', color: '#86EFAC' }}>Soldier Landlord (Flat L1H1A)</div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowAuthModal(false);
-                  onSelectRole('tenant');
-                }}
-                style={{
-                  padding: '0.85rem 1rem',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(217, 119, 6, 0.25)',
-                  border: '1.5px solid #D97706',
-                  color: '#FFFFFF',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                }}
-              >
-                <Users size={18} color="#F59E0B" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>Emeka Gabriel Okon</div>
-                  <div style={{ fontSize: '0.72rem', color: '#FDE68A' }}>Resident Tenant (Flat L1H1A)</div>
-                </div>
-              </button>
-            </div>
-
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
-                New resident or military allocatee?
-              </div>
-              <button
-                onClick={() => {
-                  setShowAuthModal(false);
-                  onStartOnboarding();
-                }}
-                style={{
-                  marginTop: '0.5rem',
-                  background: 'none',
-                  border: 'none',
-                  color: '#F59E0B',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                }}
-              >
-                Begin Tenant Onboarding Wizard →
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 6. FOOTER */}
+      {/* 5. FOOTER */}
       <footer style={{ borderTop: '1px solid rgba(245, 158, 11, 0.2)', backgroundColor: '#020A04', padding: '3rem 2rem 2rem' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <PhdlLogo size={36} />
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#FFFFFF' }}>
-                POST-SERVICE HOUSING DEVELOPMENT LIMITED
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>
-                FEDERAL REPUBLIC OF NIGERIA • RC 676563
-              </div>
+              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#FFFFFF' }}>POST-SERVICE HOUSING DEVELOPMENT LIMITED</div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>FEDERAL REPUBLIC OF NIGERIA • RC 676563</div>
             </div>
           </div>
-
           <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'right' }}>
             <div>PHDL Unity Estate HQ • Kurudu, Abuja FCT</div>
-            <div style={{ marginTop: '0.2rem', color: '#F59E0B' }}>
-              © {new Date().getFullYear()} Post-Service Housing Development Limited. All Rights Reserved.
-            </div>
+            <div style={{ marginTop: '0.2rem', color: '#F59E0B' }}>© {new Date().getFullYear()} PHDL Nigeria. All Rights Reserved.</div>
           </div>
         </div>
       </footer>

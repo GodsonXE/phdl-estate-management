@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { usePhdlStore } from '../../data/storage';
 import { Role } from '../../types';
 import { PhdlLogo } from '../common/PhdlLogo';
@@ -7,6 +7,7 @@ import {
   Shield,
   ChevronDown,
   Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { TenantOnboardingWizard } from '../onboarding/TenantOnboardingWizard';
 
@@ -14,9 +15,10 @@ export interface NavbarProps {
   onToggleSidebar?: () => void;
   currentRole?: Role;
   onSwitchRole?: (role: Role) => void;
+  onLogout?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, onSwitchRole }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, onSwitchRole, onLogout }) => {
   const store = usePhdlStore();
   const effectiveRole = currentRole || store.getActiveRole();
   const currentEstateId = store.getActiveEstateId();
@@ -87,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
         </div>
       </div>
 
-      {/* Role Persona Switcher & Onboarding Trigger */}
+      {/* Role Switcher & Sign Out */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <div style={{ position: 'relative' }}>
           <button
@@ -147,7 +149,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                   textAlign: 'left',
                   padding: '0.5rem',
                   borderRadius: '4px',
-                  background: currentRole === 'phdl_admin' ? '#F1F5F9' : 'none',
+                  background: effectiveRole === 'phdl_admin' ? '#F1F5F9' : 'none',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'block',
@@ -167,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                   textAlign: 'left',
                   padding: '0.5rem',
                   borderRadius: '4px',
-                  background: currentRole === 'soldier' ? '#F1F5F9' : 'none',
+                  background: effectiveRole === 'soldier' ? '#F1F5F9' : 'none',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'block',
@@ -187,7 +189,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                   textAlign: 'left',
                   padding: '0.5rem',
                   borderRadius: '4px',
-                  background: currentRole === 'tenant' ? '#F1F5F9' : 'none',
+                  background: effectiveRole === 'tenant' ? '#F1F5F9' : 'none',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'block',
@@ -222,14 +224,30 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
             </div>
           )}
         </div>
+
+        {/* Prominent Sign Out Button */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="btn btn-sm"
+            style={{
+              gap: '0.35rem',
+              backgroundColor: '#FEF2F2',
+              borderColor: '#FCA5A5',
+              color: '#991B1B',
+              fontWeight: 700,
+            }}
+            title="Sign Out to Public Landing Page"
+          >
+            <LogOut size={14} />
+            <span>Sign Out</span>
+          </button>
+        )}
       </div>
 
-      {/* Non-Dismissable 2-Step Onboarding Wizard Modal */}
       {showOnboardingWizard && (
-        <TenantOnboardingWizard onComplete={() => setShowOnboardingWizard(false)} />
+        <TenantOnboardingWizard onClose={() => setShowOnboardingWizard(false)} />
       )}
     </header>
   );
 };
-
-export default Navbar;

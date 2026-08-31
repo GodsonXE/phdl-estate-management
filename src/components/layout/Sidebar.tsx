@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { usePhdlStore } from '../../data/storage';
 import { PhdlLogo } from '../common/PhdlLogo';
 import {
@@ -16,6 +16,7 @@ import {
   Receipt,
   Megaphone,
   Wrench,
+  LogOut,
 } from 'lucide-react';
 
 import { Role } from '../../types';
@@ -58,9 +59,10 @@ export interface SidebarProps {
   currentRole?: Role;
   isOpen?: boolean;
   onClose?: () => void;
+  onLogout?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, currentRole }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, currentRole, onLogout }) => {
   const store = usePhdlStore();
   const effectiveRole = currentRole || store.getActiveRole();
   const currentEstateId = store.getActiveEstateId();
@@ -167,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
           gap: '0.1rem',
         }}
       >
-        {/* ================= PHDL SUPERADMIN ================= */}
+        {/* SUPERADMIN */}
         {effectiveRole === 'phdl_admin' && (
           <>
             {sectionHeader('SUPERADMIN HQ')}
@@ -186,7 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
           </>
         )}
 
-        {/* ================= SOLDIER LANDLORD ================= */}
+        {/* SOLDIER LANDLORD */}
         {effectiveRole === 'soldier' && (
           <>
             {sectionHeader('SOLDIER LANDLORD')}
@@ -199,7 +201,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
           </>
         )}
 
-        {/* ================= RESIDENT TENANT ================= */}
+        {/* RESIDENT TENANT */}
         {effectiveRole === 'tenant' && (
           <>
             {sectionHeader('RESIDENT TENANT')}
@@ -213,10 +215,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
         )}
       </div>
 
-      {/* 3. FOOTER BADGE */}
+      {/* 3. FOOTER SIGN OUT BUTTON */}
+      {onLogout && (
+        <div style={{ padding: '0.5rem 0.65rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <button
+            type="button"
+            onClick={onLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              width: '100%',
+              padding: '0.65rem 0.85rem',
+              borderRadius: '6px',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              backgroundColor: 'rgba(153, 27, 27, 0.25)',
+              color: '#FCA5A5',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+          >
+            <LogOut size={16} color="#EF4444" />
+            <span>Sign Out to Home</span>
+          </button>
+        </div>
+      )}
+
+      {/* 4. VERSION BADGE */}
       <div
         style={{
-          padding: '0.85rem 1rem',
+          padding: '0.75rem 1rem',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           backgroundColor: '#071A0B',
           fontSize: '0.72rem',
