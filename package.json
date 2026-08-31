@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "phdl-estate-management",
   "private": true,
   "version": "1.0.0",
@@ -28,6 +28,7 @@
   },
   "lavamoat": {
     "allowScripts": {
+      "esbuild": true,
       "vite>esbuild#0.21.5": false
     }
   }
