@@ -5,7 +5,7 @@ import { Sidebar, ActivePage } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
 import { PhdlAppLoader } from './components/common/PhdlAppLoader';
 import { LandingPage } from './pages/landing/LandingPage';
-import { TenantOnboardingWizard } from './components/onboarding/TenantOnboardingWizard';
+import { AuthPage } from './pages/auth/AuthPage';
 
 // Core Dashboards
 import { AdminDashboard } from './pages/dashboards/AdminDashboard';
@@ -41,12 +41,17 @@ import { TenantBillingPage } from './pages/tenant/TenantBillingPage';
 import { TenantDependentsPage } from './pages/tenant/TenantDependentsPage';
 import { TenantIDCardPage } from './pages/tenant/TenantIDCardPage';
 
+type ViewMode = 'landing' | 'auth' | 'app';
+
 export const App: React.FC = () => {
   const store = usePhdlStore();
   const [activeRole, setActiveRole] = useState<Role>(() => store.getActiveRole());
   const [isLoading, setIsLoading] = useState(true);
-  const [showLanding, setShowLanding] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // Default to Landing Page for all unauthenticated/new visitors
+  const [viewMode, setViewMode] = useState<ViewMode>('landing');
+  const [authInitialMode, setAuthInitialMode] = useState<'login' | 'register'>('login');
+  const [authInitialRole, setAuthInitialRole] = useState<Role>('phdl_admin');
 
   const getDefaultPageForRole = (role: string): ActivePage => {
     if (role === 'soldier') return 'soldier_dashboard';
@@ -63,7 +68,21 @@ export const App: React.FC = () => {
     store.setActiveRole(newRole);
     setActiveRole(newRole);
     setCurrentPage(getDefaultPageForRole(newRole));
-    setShowLanding(false);
+  };
+
+  const handleLoginSuccess = (role: Role) => {
+    handleRoleSwitch(role);
+    setViewMode('app');
+  };
+
+  const handleLogout = () => {
+    setViewMode('landing');
+  };
+
+  const handleNavigateToAuth = (mode: 'login' | 'register', role?: Role) => {
+    setAuthInitialMode(mode);
+    if (role) setAuthInitialRole(role);
+    setViewMode('auth');
   };
 
   // Sync active page if role changes
@@ -157,21 +176,32 @@ export const App: React.FC = () => {
     }
   };
 
-  if (showLanding) {
+  // 1. PUBLIC LANDING PAGE (DEFAULT FOR FIRST-TIME VISITORS & LOGGED-OUT USERS)
+  if (viewMode === 'landing') {
     return (
       <>
         {isLoading && <PhdlAppLoader onComplete={() => setIsLoading(false)} />}
-        <LandingPage
-          onSelectRole={(role) => handleRoleSwitch(role)}
-          onStartOnboarding={() => {
-            setShowLanding(false);
-            setShowOnboarding(true);
-          }}
+        <LandingPage onNavigateToAuth={handleNavigateToAuth} />
+      </>
+    );
+  }
+
+  // 2. AUTHENTICATION (LOGIN / REGISTER) SCREEN
+  if (viewMode === 'auth') {
+    return (
+      <>
+        {isLoading && <PhdlAppLoader onComplete={() => setIsLoading(false)} />}
+        <AuthPage
+          initialMode={authInitialMode}
+          initialRole={authInitialRole}
+          onLoginSuccess={handleLoginSuccess}
+          onBackToLanding={() => setViewMode('landing')}
         />
       </>
     );
   }
 
+  // 3. AUTHENTICATED APPLICATION DASHBOARD
   return (
     <>
       {isLoading && <PhdlAppLoader onComplete={() => setIsLoading(false)} />}
@@ -185,7 +215,7 @@ export const App: React.FC = () => {
           backgroundColor: 'var(--bg-primary, #F8FAFC)',
         }}
       >
-        {/* 1. Fixed Sidebar */}
+        {/* Fixed Sidebar */}
         <Sidebar
           activePage={currentPage}
           currentRole={activeRole}
@@ -195,9 +225,10 @@ export const App: React.FC = () => {
           }}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          onLogout={handleLogout}
         />
 
-        {/* 2. Main Content Area */}
+        {/* Main Content Area */}
         <div
           style={{
             flex: 1,
@@ -212,6 +243,7 @@ export const App: React.FC = () => {
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             currentRole={activeRole}
             onSwitchRole={handleRoleSwitch}
+            onLogout={handleLogout}
           />
 
           <main
@@ -227,11 +259,6 @@ export const App: React.FC = () => {
           </main>
         </div>
       </div>
-
-      {/* Onboarding Wizard Modal */}
-      {showOnboarding && (
-        <TenantOnboardingWizard onClose={() => setShowOnboarding(false)} />
-      )}
     </>
   );
 };

@@ -89,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
         </div>
       </div>
 
-      {/* Role Switcher & Sign Out */}
+      {/* Role Persona Switcher & Sign Out */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <div style={{ position: 'relative' }}>
           <button
@@ -225,7 +225,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
           )}
         </div>
 
-        {/* Prominent Sign Out Button */}
+        {/* Prominent Red Sign Out Button */}
         {onLogout && (
           <button
             onClick={onLogout}
@@ -235,7 +235,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
               backgroundColor: '#FEF2F2',
               borderColor: '#FCA5A5',
               color: '#991B1B',
-              fontWeight: 700,
+              fontWeight: 800,
+              cursor: 'pointer',
             }}
             title="Sign Out to Public Landing Page"
           >

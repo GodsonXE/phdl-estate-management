@@ -6,10 +6,7 @@ import {
   Building,
   Users,
   Lock,
-  Mail,
-  KeyRound,
   ArrowLeft,
-  CheckCircle2,
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
@@ -32,8 +29,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [militaryIdOrPhone, setMilitaryIdOrPhone] = useState('');
-  const [selectedFlat, setSelectedFlat] = useState('Flat L1H1A (Lane 1)');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +93,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
         }}
       >
-        {/* Header Branding */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
             <PhdlLogo size={52} />
@@ -221,7 +215,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           {mode === 'register' && (
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-                Full Name (with Military Rank if applicable)
+                Full Name (with Rank if military)
               </label>
               <input
                 type="text"
@@ -245,10 +239,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-              Official Email Address
+              Email Address / Service Number
             </label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={
@@ -273,7 +267,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-              Access Password / Gate PIN
+              Password / Access PIN
             </label>
             <input
               type="password"
@@ -292,34 +286,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               }}
             />
           </div>
-
-          {mode === 'register' && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-                Assigned Housing Unit (Flat)
-              </label>
-              <select
-                value={selectedFlat}
-                onChange={(e) => setSelectedFlat(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 0.75rem',
-                  borderRadius: '6px',
-                  backgroundColor: '#071A0B',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <option value="Flat L1H1A (Lane 1)">Flat L1H1A (Lane 1 - North Wing)</option>
-                <option value="Flat L2H3B (Lane 2)">Flat L2H3B (Lane 2)</option>
-                <option value="Flat L3H2A (Lane 3)">Flat L3H2A (Lane 3)</option>
-                <option value="Flat L4H1C (Lane 4)">Flat L4H1C (Lane 4)</option>
-                <option value="Flat L5H4D (Lane 5)">Flat L5H4D (Lane 5 - South Wing)</option>
-              </select>
-            </div>
-          )}
 
           <button
             type="submit"
@@ -352,7 +318,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           </button>
         </form>
 
-        {/* Instant 1-Click Persona Access Section */}
+        {/* Quick 1-Click Access */}
         <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Instant 1-Click Persona Access

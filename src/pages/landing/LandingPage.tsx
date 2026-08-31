@@ -74,7 +74,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
           </div>
         </div>
 
-        {/* Navigation CTAs */}
+        {/* Action CTAs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
             onClick={() => onNavigateToAuth('login')}
@@ -119,7 +119,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </nav>
 
-      {/* 3. HERO SECTION WITH FADED REAL-ESTATE PHOTOGRAPHY */}
+      {/* 3. HERO SECTION WITH REAL-ESTATE BACKGROUND */}
       <section
         style={{
           position: 'relative',
