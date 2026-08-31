@@ -5,10 +5,8 @@ import {
   Shield,
   Building,
   Users,
-  CreditCard,
   Lock,
   ArrowRight,
-  CheckCircle2,
   Sparkles,
   ChevronRight,
 } from 'lucide-react';
@@ -20,34 +18,7 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#030E06', color: '#FFFFFF', fontFamily: 'var(--font-sans, system-ui, sans-serif)', overflowX: 'hidden' }}>
-      {/* 1. TOP ANNOUNCEMENT BAR */}
-      <div
-        style={{
-          backgroundColor: '#8B0000',
-          background: 'linear-gradient(90deg, #7F1D1D 0%, #991B1B 50%, #7F1D1D 100%)',
-          color: '#FFFFFF',
-          fontSize: '0.75rem',
-          fontWeight: 700,
-          padding: '0.45rem 1.5rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid rgba(255,255,255,0.15)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ backgroundColor: '#F59E0B', color: '#0B2410', padding: '1px 6px', borderRadius: 4, fontSize: '0.68rem', fontWeight: 800 }}>
-            OFFICIAL
-          </span>
-          <span>FEDERAL REPUBLIC OF NIGERIA • ARMED FORCES HOUSING SCHEME • RC 676563</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', fontSize: '0.72rem' }}>
-          <span>Emergency Security Hotline: <strong>+234 803 999 0001</strong></span>
-          <span style={{ color: '#FCD34D' }}>24/7 Gate Verification Active</span>
-        </div>
-      </div>
-
-      {/* 2. STICKY NAVIGATION BAR */}
+      {/* 1. STICKY NAVIGATION BAR */}
       <nav
         style={{
           position: 'sticky',
@@ -56,7 +27,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
           backgroundColor: 'rgba(7, 26, 11, 0.94)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(245, 158, 11, 0.25)',
-          padding: '0.75rem 2rem',
+          padding: '0.85rem 2rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -74,7 +45,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
           </div>
         </div>
 
-        {/* Action CTAs */}
+        {/* Navigation Action CTAs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
             onClick={() => onNavigateToAuth('login')}
@@ -119,7 +90,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </nav>
 
-      {/* 3. HERO SECTION WITH REAL-ESTATE BACKGROUND */}
+      {/* 2. HERO SECTION WITH FADED REAL-ESTATE PHOTOGRAPHY */}
       <section
         style={{
           position: 'relative',
@@ -261,7 +232,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </section>
 
-      {/* 4. THREE DEDICATED PORTAL ROLES */}
+      {/* 3. THREE DEDICATED PORTAL ROLES */}
       <section style={{ padding: '5rem 2rem', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <div style={{ color: '#F59E0B', fontWeight: 800, fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -341,7 +312,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </section>
 
-      {/* 5. FOOTER */}
+      {/* 4. FOOTER */}
       <footer style={{ borderTop: '1px solid rgba(245, 158, 11, 0.2)', backgroundColor: '#020A04', padding: '3rem 2rem 2rem' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
