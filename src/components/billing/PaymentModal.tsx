@@ -198,7 +198,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   <img src="/phdl-logo.png" alt="PHDL Logo" style={{ width: 44, height: 44, objectFit: 'contain' }} />
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ color: 'var(--army-red-700)', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.02em', lineHeight: 1.1 }}>
-                      POST-SERVICE HOUSING DEVELOPMENT LIMITED
+                      PHDL Estates
                     </div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--army-green-950)', fontWeight: 700 }}>
                       RC 676563 • Official Treasury Revenue Receipt

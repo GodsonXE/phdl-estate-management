@@ -101,7 +101,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             {mode === 'login' ? 'Command Portal Sign-In' : 'Resident & Landlord Registration'}
           </h2>
           <div style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 700, marginTop: '0.25rem' }}>
-            POST-SERVICE HOUSING DEVELOPMENT LIMITED
+            PHDL Estates
           </div>
         </div>
 

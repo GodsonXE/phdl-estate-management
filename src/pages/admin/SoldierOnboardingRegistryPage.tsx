@@ -959,7 +959,7 @@ export const SoldierOnboardingRegistryPage: React.FC = () => {
                                         <img src="/logo.png" alt="PHDL Official Seal" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'contain' }} />
                                         <div>
                                             <div className="title" style={{ fontSize: '15px', fontWeight: 900, color: '#1B4D21', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                POST-SERVICE HOUSING DEVELOPMENT LIMITED
+                                                PHDL Estates
                                             </div>
                                             <div className="subtitle" style={{ fontSize: '10px', fontWeight: 800, color: '#991B1B', letterSpacing: '0.04em' }}>
                                                 NIGERIAN ARMED FORCES HOUSING SCHEME • RC 676563

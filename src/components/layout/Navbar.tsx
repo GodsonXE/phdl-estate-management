@@ -74,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, on
                 lineHeight: 1.2,
               }}
             >
-              POST-SERVICE HOUSING DEVELOPMENT LIMITED
+              PHDL Estates
             </div>
             <div
               style={{

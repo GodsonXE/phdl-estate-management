@@ -161,7 +161,7 @@ export const PhdlAppLoader: React.FC<PhdlAppLoaderProps> = ({ onComplete }) => {
             gap: '0.4rem',
           }}
         >
-          <Lock size={12} color="#F59E0B" /> POST-SERVICE HOUSING DEVELOPMENT LIMITED
+          <Lock size={12} color="#F59E0B" /> PHDL Estates
         </div>
 
         <h2

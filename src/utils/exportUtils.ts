@@ -353,7 +353,7 @@ export const printOrExportPDFRoster = (options: PrintRosterOptions) => {
     <div class="logo-box">
       <img class="logo-img" src="${window.location.origin}/phdl-logo.png" alt="PHDL Logo" onerror="this.style.display='none'" />
       <div class="title-box">
-        <div class="corporate-name">POST-SERVICE HOUSING DEVELOPMENT LIMITED • RC 676563</div>
+        <div class="corporate-name">PHDL Estates • RC 676563</div>
         <h1>${options.estateName} — ${options.title}</h1>
         <p>${options.subtitle}</p>
       </div>

@@ -685,7 +685,7 @@ export const TenantManagementPage: React.FC = () => {
                                 <PhdlLogo size={64} />
                                 <div style={{ textAlign: 'center', flex: 1 }}>
                                     <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1B4D21', letterSpacing: '0.05em' }}>
-                                        POST-SERVICE HOUSING DEVELOPMENT LIMITED
+                                        PHDL Estates
                                     </div>
                                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#991B1B' }}>
                                         FEDERAL REPUBLIC OF NIGERIA • RC 676563
