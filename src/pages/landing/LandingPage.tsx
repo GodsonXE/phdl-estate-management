@@ -209,7 +209,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </h1>
 
         <p style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)', color: 'rgba(255, 255, 255, 0.8)', maxWidth: 780, lineHeight: 1.6 }}>
-          Central command for <strong>PHDL Unity Estate (Kurudu, Abuja)</strong> — managing all <strong>400 residential flats across 100 houses and 8 zoned lanes</strong>, ₦10,000 monthly service charges, 24/7 QR gate passes, and 18 portfolio schemes nationwide.
+          Central command for <strong>PHDL Unity Estate AHOOAS,(Idu, Abuja)</strong> — managing all <strong>400 residential flats across 100 houses and 8 zoned lanes in Phase 1</strong>, ₦10,000 monthly service charges, 24/7 QR gate passes, and 18 portfolio schemes nationwide.
         </p>
 
         {/* Primary Action Buttons */}
@@ -273,7 +273,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', padding: '2rem 1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)' }}>
         <div>POST-HOUSING DEVELOPMENT LIMITED (PHDL) • ARMED FORCES HOUSING SCHEME RC 676563</div>
-        <div style={{ marginTop: '0.35rem' }}>Unity Estate, Kurudu, Abuja FCT • Emergency Security: +234 803 999 0001</div>
+        <div style={{ marginTop: '0.35rem' }}>Mambilla Barracks, Asokoro, Abuja FCT • Emergency Security: +234 803 999 0001</div>
       </footer>
     </div>
   );
