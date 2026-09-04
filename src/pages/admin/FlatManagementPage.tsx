@@ -1,281 +1,264 @@
-import React, { useState } from 'react';
-import { usePhdlStore } from '../../data/storage';
-import { Flat, FlatStatus } from '../../types';
-import { Building, Plus, Edit, Trash2, Search, Filter, CheckCircle2, X, Save } from 'lucide-react';
-import { formatNaira } from '../../utils/formatters';
+import React, { useState, useRef } from 'react';
+import { usePhdlStore, EstateFlat } from '../../data/storage';
+import {
+  Building,
+  Building2,
+  Search,
+  Filter,
+  Download,
+  Upload,
+  Edit3,
+  Plus,
+  CheckCircle2,
+  RotateCcw,
+  Save,
+} from 'lucide-react';
 
 export const FlatManagementPage: React.FC = () => {
-    const store = usePhdlStore();
-    const currentEstateId = store.getActiveEstateId();
-    const flats = store.getFlats(currentEstateId) || [];
-    const lanes = store.getLanes(currentEstateId) || [];
-    const soldiers = store.getSoldiers() || [];
-    const tenants = store.getTenants() || [];
+  const store = usePhdlStore();
+  const [flats, setFlats] = useState<EstateFlat[]>(store.getFlats());
+  const [searchCode, setSearchCode] = useState('');
+  const [selectedLane, setSelectedLane] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [editingFlat, setEditingFlat] = useState<EstateFlat | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedLaneId, setSelectedLaneId] = useState('all');
-    const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [editingFlat, setEditingFlat] = useState<Flat | null>(null);
-    const [isCreating, setIsCreating] = useState(false);
-    const [laneId, setLaneId] = useState(lanes[0]?.id || '');
-    const [houseNumber, setHouseNumber] = useState<number>(1);
-    const [flatLetter, setFlatLetter] = useState<'A' | 'B' | 'C' | 'D'>('A');
-    const [fullFlatCode, setFullFlatCode] = useState('L1H1A');
-    const [status, setStatus] = useState<FlatStatus>('unoccupied');
-    const [ownerId, setOwnerId] = useState('');
-    const [rentAmount, setRentAmount] = useState(1200000);
-    const [notice, setNotice] = useState<string | null>(null);
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFlat) return;
+    const updated = flats.map((f) => (f.id === editingFlat.id ? editingFlat : f));
+    setFlats(updated);
+    store.saveFlats(updated);
+    setEditingFlat(null);
+    setSuccessNotice(`Flat ${editingFlat.flatCode} modified successfully!`);
+    setTimeout(() => setSuccessNotice(null), 3500);
+  };
 
-    const filteredFlats = flats.filter((f) => {
-        if (searchQuery.trim()) {
-            if (!f.fullFlatCode.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const lines = text.split('\n').filter((l) => l.trim().length > 0);
+      if (lines.length <= 1) return;
+
+      const imported: EstateFlat[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',');
+        if (parts.length >= 4) {
+          imported.push({
+            id: `flat-${parts[0].replace(/"/g, '').trim().toLowerCase()}`,
+            flatCode: parts[0].replace(/"/g, '').trim(),
+            laneNumber: Number(parts[1]) || 1,
+            houseNumber: Number(parts[2]) || 1,
+            flatPosition: 'A',
+            apartmentType: parts[3]?.replace(/"/g, '').trim() || '3-Bedroom Luxury Flat',
+            soldierOwner: parts[4]?.replace(/"/g, '').trim() || 'Unallocated',
+            serviceNo: parts[5]?.replace(/"/g, '').trim() || 'N/A',
+            currentTenant: parts[6]?.replace(/"/g, '').trim() || 'None',
+            tenantPhone: '+234 800 000 0000',
+            occupancyStatus: (parts[7]?.replace(/"/g, '').trim() as any) || 'owner_occupied',
+            meterNumber: `MTR-PHDL-${1000 + i}`,
+            serviceCharge: 'Paid',
+          });
         }
-        if (selectedLaneId !== 'all' && f.laneId !== selectedLaneId) return false;
-        if (selectedStatus !== 'all' && f.status !== selectedStatus) return false;
-        return true;
-    });
+      }
 
-    const handleOpenCreate = () => {
-        setEditingFlat(null);
-        setLaneId(lanes[0]?.id || '');
-        setHouseNumber(1);
-        setFlatLetter('A');
-        setFullFlatCode(`L1H${flats.length + 1}A`);
-        setStatus('unoccupied');
-        setOwnerId('');
-        setRentAmount(1200000);
-        setIsCreating(true);
+      if (imported.length > 0) {
+        setFlats(imported);
+        store.saveFlats(imported);
+        setSuccessNotice(`✅ Imported ${imported.length} apartment records from CSV!`);
+        setTimeout(() => setSuccessNotice(null), 4000);
+      }
     };
+    reader.readAsText(file);
+  };
 
-    const handleOpenEdit = (f: Flat) => {
-        setIsCreating(false);
-        setEditingFlat(f);
-        setLaneId(f.laneId);
-        setHouseNumber(f.houseNumber || 1);
-        setFlatLetter(((f.flatLetter as 'A' | 'B' | 'C' | 'D') || 'A'));
-        setFullFlatCode(f.fullFlatCode);
-        setStatus(f.status);
-        setOwnerId(f.ownerId || '');
-        setRentAmount(f.rentAmount || 1200000);
-    };
+  const handleExportCSV = () => {
+    const headers = ['Flat Code', 'Lane', 'House', 'Apartment Type', 'Soldier Owner', 'Service No', 'Current Tenant', 'Occupancy Status', 'Meter ID', 'Service Charge'];
+    const rows = filteredFlats.map((f) => [
+      f.flatCode,
+      f.laneNumber,
+      f.houseNumber,
+      `"${f.apartmentType}"`,
+      `"${f.soldierOwner}"`,
+      f.serviceNo,
+      `"${f.currentTenant}"`,
+      f.occupancyStatus,
+      f.meterNumber,
+      f.serviceCharge,
+    ]);
 
-    const handleSaveFlat = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (isCreating) {
-            const newFlat: Flat = {
-                id: fullFlatCode,
-                estateId: currentEstateId,
-                laneId,
-                houseNumber: Number(houseNumber),
-                flatLetter,
-                fullFlatCode,
-                flatType: '2-Bedroom Standard',
-                status,
-                ownerId: ownerId || undefined,
-                rentAmount: Number(rentAmount),
-            };
-            store.addFlat(newFlat);
-            setNotice(`✓ Added Housing Unit: Flat ${newFlat.fullFlatCode}`);
-        } else if (editingFlat) {
-            const updated: Flat = {
-                ...editingFlat,
-                laneId,
-                houseNumber: Number(houseNumber),
-                flatLetter,
-                fullFlatCode,
-                status,
-                ownerId: ownerId || undefined,
-                rentAmount: Number(rentAmount),
-            };
-            store.updateFlat(updated);
-            setNotice(`✓ Updated Flat ${updated.fullFlatCode}`);
-        }
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const link = document.createElement('a');
+    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('download', `PHDL_Unity_Estate_400_Flats_Directory.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-        setIsCreating(false);
-        setEditingFlat(null);
-        setTimeout(() => setNotice(null), 3000);
-    };
+  const filteredFlats = flats.filter((f) => {
+    if (searchCode.trim()) {
+      const q = searchCode.toLowerCase();
+      const mCode = f.flatCode.toLowerCase().includes(q);
+      const mSoldier = f.soldierOwner.toLowerCase().includes(q);
+      const mTenant = f.currentTenant.toLowerCase().includes(q);
+      const mSrv = f.serviceNo.toLowerCase().includes(q);
+      if (!mCode && !mSoldier && !mTenant && !mSrv) return false;
+    }
+    if (selectedLane !== 'all' && f.laneNumber.toString() !== selectedLane) return false;
+    if (selectedStatus !== 'all' && f.occupancyStatus !== selectedStatus) return false;
+    return true;
+  });
 
-    const handleDelete = (id: string, code: string) => {
-        if (window.confirm(`Delete Flat ${code} from housing registry?`)) {
-            store.deleteFlat(id);
-            setNotice(`✓ Deleted Flat ${code}`);
-            setTimeout(() => setNotice(null), 3000);
-        }
-    };
-
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <div className="section-overline">
-                        <span>SUPERADMIN HOUSING CONTROL</span> • <span>{flats.length} 2-BEDROOM UNITS</span>
-                    </div>
-                    <h1>Estate Flats & Allocation Management</h1>
-                    <p>Create new apartment units, reassign soldier allocations, and manage residential occupancy.</p>
-                </div>
-
-                <button onClick={handleOpenCreate} className="btn btn-primary" style={{ gap: '0.4rem', backgroundColor: 'var(--army-green-800)' }}>
-                    <Plus size={16} /> Create New Flat
-                </button>
-            </div>
-
-            {notice && (
-                <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 'var(--radius-md)', fontWeight: 700 }}>
-                    {notice}
-                </div>
-            )}
-
-            {/* Filter Bar */}
-            <div className="card" style={{ padding: '1.25rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label"><Search size={14} style={{ display: 'inline', marginRight: 4 }} /> Search Code:</label>
-                        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="e.g. L1H1A" className="form-control" />
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label"><Building size={14} style={{ display: 'inline', marginRight: 4 }} /> Lane:</label>
-                        <select value={selectedLaneId} onChange={(e) => setSelectedLaneId(e.target.value)} className="form-select">
-                            <option value="all">-- All Lanes --</option>
-                            {lanes.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
-                        </select>
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label"><Filter size={14} style={{ display: 'inline', marginRight: 4 }} /> Status:</label>
-                        <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="form-select">
-                            <option value="all">-- All Statuses --</option>
-                            <option value="occupied">Occupied (Sublet)</option>
-                            <option value="owner_occupied">Owner Occupied</option>
-                            <option value="unoccupied">Unoccupied</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Flats Table */}
-            <div className="card">
-                <div className="table-container">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Flat Code</th>
-                                <th>Lane</th>
-                                <th>Apartment Type</th>
-                                <th>Soldier Owner</th>
-                                <th>Current Tenant</th>
-                                <th>Occupancy Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredFlats.map((f) => {
-                                const lane = lanes.find((l) => l.id === f.laneId);
-                                const owner = soldiers.find((s) => s.id === f.ownerId || (s.ownedFlatIds || []).includes(f.id));
-                                const tenant = tenants.find((t) => t.id === f.currentTenantId || t.flatId === f.id);
-
-                                return (
-                                    <tr key={f.id}>
-                                        <td><strong>Flat {f.fullFlatCode}</strong></td>
-                                        <td>{lane?.name || 'Lane 1'}</td>
-                                        <td>2-Bedroom Standard</td>
-                                        <td>{owner ? `${owner.rank} ${owner.fullName}` : <span style={{ color: 'var(--text-subtle)' }}>PHDL Pool</span>}</td>
-                                        <td>{tenant ? tenant.fullName : <span style={{ color: 'var(--text-subtle)' }}>—</span>}</td>
-                                        <td>
-                                            <span className={`badge ${f.status === 'occupied' ? 'badge-success' : f.status === 'owner_occupied' ? 'badge-military' : 'badge-warning'}`}>
-                                                {f.status.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '0.35rem' }}>
-                                                <button onClick={() => handleOpenEdit(f)} className="btn btn-outline btn-sm" style={{ padding: '4px 8px' }}>
-                                                    <Edit size={13} />
-                                                </button>
-                                                <button onClick={() => handleDelete(f.id, f.fullFlatCode)} className="btn btn-ghost btn-sm" style={{ color: 'var(--army-red-700)', padding: '4px 8px' }}>
-                                                    <Trash2 size={13} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Flat Create / Edit Modal */}
-            {(isCreating || editingFlat) && (
-                <div className="modal-backdrop" onClick={() => { setIsCreating(false); setEditingFlat(null); }}>
-                    <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
-                        <div className="modal-header">
-                            <h3 style={{ fontSize: '1.05rem', margin: 0 }}>{isCreating ? 'Create New Flat Unit' : `Modify Flat ${editingFlat?.fullFlatCode}`}</h3>
-                            <button onClick={() => { setIsCreating(false); setEditingFlat(null); }} className="btn btn-ghost btn-sm" style={{ color: '#FFFFFF' }}><X size={18} /></button>
-                        </div>
-                        <form onSubmit={handleSaveFlat}>
-                            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Lane</label>
-                                        <select value={laneId} onChange={(e) => setLaneId(e.target.value)} className="form-select">
-                                            {lanes.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
-                                        </select>
-                                    </div>
-
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Flat Code (e.g. L1H4A)</label>
-                                        <input type="text" value={fullFlatCode} onChange={(e) => setFullFlatCode(e.target.value)} className="form-control" required />
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">House Number</label>
-                                        <input type="number" value={houseNumber} onChange={(e) => setHouseNumber(Number(e.target.value))} className="form-control" min={1} required />
-                                    </div>
-
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Flat Letter (A/B/C/D)</label>
-                                        <select value={flatLetter} onChange={(e) => setFlatLetter(e.target.value as any)} className="form-select">
-                                            <option value="A">A (Ground Left)</option>
-                                            <option value="B">B (Ground Right)</option>
-                                            <option value="C">C (Upper Left)</option>
-                                            <option value="D">D (Upper Right)</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="form-group" style={{ margin: 0 }}>
-                                    <label className="form-label">Allocated Soldier Owner</label>
-                                    <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="form-select">
-                                        <option value="">-- None (PHDL Pool) --</option>
-                                        {soldiers.map((s) => (
-                                            <option key={s.id} value={s.id}>{s.rank} {s.fullName} ({s.militaryBranch})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="form-group" style={{ margin: 0 }}>
-                                    <label className="form-label">Occupancy Status</label>
-                                    <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="form-select">
-                                        <option value="occupied">Occupied (Sublet to Tenant)</option>
-                                        <option value="owner_occupied">Owner Occupied</option>
-                                        <option value="unoccupied">Unoccupied</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <button type="button" onClick={() => { setIsCreating(false); setEditingFlat(null); }} className="btn btn-ghost">Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--army-green-800)' }}>
-                                    <Save size={15} /> Save Flat
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <div className="section-overline">
+            <span>SUPERADMIN HOUSING CONTROL</span> • <span>{filteredFlats.length} OF {flats.length} FLATS DISPLAYED</span>
+          </div>
+          <h1>Estate Flats & Allocation Management</h1>
+          <p>
+            Official Directory of all <strong>400 residential flats (100 Houses across 8 Lanes)</strong>. Admins can modify allottees, reassign tenancies, and import/export estate spreadsheets.
+          </p>
         </div>
-    );
+
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <input type="file" ref={fileInputRef} onChange={handleCSVUpload} accept=".csv" style={{ display: 'none' }} />
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-primary btn-sm" style={{ gap: '0.4rem', backgroundColor: '#15803D' }}>
+            <Upload size={14} /> Import Flats (CSV)
+          </button>
+          <button type="button" onClick={() => window.print()} className="btn btn-outline btn-sm" style={{ gap: '0.4rem' }}><Download size={14} /> Export PDF Report</button><button type="button" onClick={handleExportCSV} className="btn btn-outline btn-sm" style={{ gap: '0.4rem' }}>
+            <Download size={14} /> Export CSV ({filteredFlats.length})
+          </button>
+        </div>
+      </div>
+
+      {successNotice && (
+        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <CheckCircle2 size={16} /> {successNotice}
+        </div>
+      )}
+
+      <div className="card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem' }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label"><Search size={14} style={{ display: 'inline', marginRight: 4 }} /> Search Flat Code, Soldier Name, or Service No:</label>
+            <input type="text" value={searchCode} onChange={(e) => setSearchCode(e.target.value)} placeholder="e.g. L1H1A, L2H17D, Adamu, NA/4521..." className="form-control" />
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label"><Building size={14} style={{ display: 'inline', marginRight: 4 }} /> Lane (100 Houses • 400 Flats):</label>
+            <select value={selectedLane} onChange={(e) => setSelectedLane(e.target.value)} className="form-select">
+              <option value="all">-- All 8 Lanes (400 Flats) --</option>
+              <option value="1">Lane 1 (9 Houses • 36 Flats: L1H1 to L1H9)</option>
+              <option value="2">Lane 2 (17 Houses • 68 Flats: L2H1 to L2H17)</option>
+              <option value="3">Lane 3 (18 Houses • 72 Flats: L3H1 to L3H18)</option>
+              <option value="4">Lane 4 (18 Houses • 72 Flats: L4H1 to L4H18)</option>
+              <option value="5">Lane 5 (16 Houses • 64 Flats: L5H1 to L5H16)</option>
+              <option value="6">Lane 6 (8 Houses • 32 Flats: L6H1 to L6H8)</option>
+              <option value="7">Lane 7 (7 Houses • 28 Flats: L7H1 to L7H7)</option>
+              <option value="8">Lane 8 (7 Houses • 28 Flats: L8H1 to L8H7)</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label"><Filter size={14} style={{ display: 'inline', marginRight: 4 }} /> Occupancy Status:</label>
+            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="form-select">
+              <option value="all">-- All Statuses --</option>
+              <option value="owner_occupied">Owner Occupied (Soldier)</option>
+              <option value="sublet_tenant">Occupied (Sublet Tenant)</option>
+              <option value="unoccupied">Unoccupied / Available</option>
+              <option value="maintenance">Under Maintenance</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="table-container" style={{ maxHeight: '68vh', overflowY: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Flat Code</th>
+                <th>Lane & House</th>
+                <th>Apartment Type</th>
+                <th>Soldier Owner</th>
+                <th>Current Tenant</th>
+                <th>Occupancy Status</th>
+                <th>Admin Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredFlats.map((flat) => (
+                <tr key={flat.id}>
+                  <td><strong>Flat {flat.flatCode}</strong></td>
+                  <td><strong>Lane {flat.laneNumber}</strong> (House {flat.houseNumber})</td>
+                  <td>{flat.apartmentType}</td>
+                  <td>
+                    {flat.soldierOwner !== 'Unallocated' ? (
+                      <div><strong>{flat.soldierOwner}</strong><div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{flat.serviceNo}</div></div>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>Unallocated</span>
+                    )}
+                  </td>
+                  <td>{flat.currentTenant !== 'None' ? flat.currentTenant : <span style={{ color: '#9CA3AF' }}>Vacant</span>}</td>
+                  <td>
+                    <span className={`badge ${flat.occupancyStatus === 'owner_occupied' ? 'badge-success' : flat.occupancyStatus === 'sublet_tenant' ? 'badge-military' : flat.occupancyStatus === 'unoccupied' ? 'badge-warning' : 'badge-danger'}`}>
+                      {flat.occupancyStatus.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </td>
+                  <td>
+                    <button onClick={() => setEditingFlat({ ...flat })} className="btn btn-primary btn-sm" style={{ fontSize: '0.72rem', gap: '0.3rem', backgroundColor: '#1B4D21' }}>
+                      <Edit3 size={12} /> Modify Flat
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {editingFlat && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 550 }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, color: '#FFFFFF' }}>Modify Flat: {editingFlat.flatCode}</h3>
+              <button onClick={() => setEditingFlat(null)} className="btn btn-outline btn-sm">✕</button>
+            </div>
+            <form onSubmit={handleSaveEdit} style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Soldier Owner Name & Rank:</label>
+                <input type="text" value={editingFlat.soldierOwner} onChange={(e) => setEditingFlat({ ...editingFlat, soldierOwner: e.target.value })} className="form-control" />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Military Service Number:</label>
+                <input type="text" value={editingFlat.serviceNo} onChange={(e) => setEditingFlat({ ...editingFlat, serviceNo: e.target.value })} className="form-control" />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Current Resident / Sublet Tenant:</label>
+                <input type="text" value={editingFlat.currentTenant} onChange={(e) => setEditingFlat({ ...editingFlat, currentTenant: e.target.value })} className="form-control" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setEditingFlat(null)} className="btn btn-outline btn-sm">Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" style={{ backgroundColor: '#1B4D21', gap: '0.4rem' }}>
+                  <Save size={14} /> Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
+
+export default FlatManagementPage;

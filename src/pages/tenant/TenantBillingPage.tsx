@@ -1,163 +1,132 @@
 import React, { useState } from 'react';
 import { usePhdlStore } from '../../data/storage';
-import { Bill } from '../../types';
-import { CreditCard, Receipt, Shield, CheckCircle2, AlertCircle, Sparkles, Clock, Check } from 'lucide-react';
-import { formatNaira, formatDate } from '../../utils/formatters';
 import { PaymentModal } from '../../components/billing/PaymentModal';
+import {
+  CreditCard,
+  Receipt,
+  CheckCircle2,
+  Download,
+  Printer,
+  Shield,
+  Clock,
+  Sparkles,
+} from 'lucide-react';
 
 export const TenantBillingPage: React.FC = () => {
-  const store = usePhdlStore();
-  const currentEstateId = store.getActiveEstateId();
-  const activeTenantId = store.getActiveTenantId();
-  const activeTenant = store.getTenantById(activeTenantId);
-  const flats = store.getFlats(currentEstateId) || [];
-  const flat = flats.find((f) => f.id === activeTenant?.flatId);
-  const bills = store.getBills(currentEstateId) || [];
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasPaidCurrent, setHasPaidCurrent] = useState(false);
+  const [receiptNo, setReceiptNo] = useState('RCP-PHDL-928410');
 
-  const tariff = store.getTariffSettings();
-  const [selectedBulkMonths, setSelectedBulkMonths] = useState<3 | 6 | 12>(3);
-  const [selectedBillForPayment, setSelectedBillForPayment] = useState<Bill | null>(null);
+  const history = [
+    { id: 'INV-2026-009', month: 'September 2026', amount: 10000, status: hasPaidCurrent ? 'paid' : 'pending', date: '2026-09-01' },
+    { id: 'INV-2026-008', month: 'August 2026', amount: 10000, status: 'paid', date: '2026-08-03' },
+    { id: 'INV-2026-007', month: 'July 2026', amount: 10000, status: 'paid', date: '2026-07-02' },
+  ];
 
-  const tenantBills = bills.filter((b) => b.tenantId === activeTenantId || b.flatId === flat?.id);
-  const unpaidBills = tenantBills.filter((b) => b.status === 'unpaid' || b.status === 'overdue');
-
-  const getBulkRate = (months: 3 | 6 | 12): number => {
-    if (months === 3) return tariff.activeBulkCharges?.threeMonths || tariff.threeMonthsAmount || 30000;
-    if (months === 6) return tariff.activeBulkCharges?.sixMonths || tariff.sixMonthsAmount || 60000;
-    return tariff.activeBulkCharges?.annual || tariff.annualAmount || 120000;
-  };
-
-  const handleGenerateBulkBill = () => {
-    const amount = getBulkRate(selectedBulkMonths);
-    const newBill: Bill = {
-      id: `bill-sc-${Date.now()}`,
-      estateId: currentEstateId,
-      flatId: flat?.id || 'L1H1A',
-      tenantId: activeTenantId,
-      billType: 'service_charge',
-      title: `${selectedBulkMonths}-Month Standard Service Charge Levy (₦10,000/mo)`,
-      amount,
-      totalAmount: amount,
-      billingPeriodMonths: selectedBulkMonths,
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'unpaid',
-      createdAt: new Date().toISOString(),
-    };
-    store.createBill(newBill);
-    setSelectedBillForPayment(newBill);
+  const handlePaymentSuccess = (rcp: string) => {
+    setReceiptNo(rcp);
+    setHasPaidCurrent(true);
+    setIsModalOpen(false);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div className="section-overline">
-          <span>STANDARD ESTATE LEVIES</span> • <span>₦10,000 / MONTH</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <div className="section-overline"><span>ESTATE LEVIES & SETTLEMENTS</span> • <span>₦10,000 / MONTH</span></div>
+          <h1>Service Charge Billing & Levies</h1>
+          <p>Pay statutory monthly estate service charge (central security patrol, borehole water distribution, and lighting).</p>
         </div>
-        <h1>Pay Estate Utility Bills & Service Levies</h1>
-        <p>Service charges in PHDL Unity Estate are standardized at ₦10,000/month payable exclusively in 3, 6, or 12-month bulk bundles.</p>
+        <button onClick={() => window.print()} className="btn btn-outline btn-sm" style={{ gap: '0.4rem' }}>
+          <Printer size={14} /> Export Billing Ledger (PDF)
+        </button>
       </div>
 
-      {/* Bulk Tier Payment Selector */}
-      <div className="card" style={{ padding: '1.5rem', border: '2px solid var(--army-gold-500)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          <Sparkles size={20} color="var(--army-gold-600)" />
-          <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--army-green-950)' }}>
-            Select Mandatory Service Charge Bulk Tier
-          </h3>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-          {[3, 6, 12].map((m) => {
-            const months = m as 3 | 6 | 12;
-            const cost = getBulkRate(months);
-            const isSelected = selectedBulkMonths === months;
-
-            return (
-              <div
-                key={months}
-                onClick={() => setSelectedBulkMonths(months)}
-                style={{
-                  padding: '1.25rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: isSelected ? '2px solid var(--army-green-800)' : '1px solid var(--border-light)',
-                  backgroundColor: isSelected ? 'var(--army-green-50)' : '#FFFFFF',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                  <strong style={{ fontSize: '1rem', color: 'var(--army-green-950)' }}>{months} Months</strong>
-                  {isSelected && <Check size={18} color="var(--army-green-800)" />}
-                </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--army-green-900)' }}>
-                  {formatNaira(cost)}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>₦10,000 / month</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={handleGenerateBulkBill} className="btn btn-primary" style={{ gap: '0.4rem', backgroundColor: 'var(--army-green-800)' }}>
-            <CreditCard size={16} /> Pay {formatNaira(getBulkRate(selectedBulkMonths))} Now
-          </button>
-        </div>
-      </div>
-
-      {/* Unpaid Bills Table */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">
-            <Receipt size={18} /> Outstanding Invoices ({unpaidBills.length})
+      {/* Payment Action Banner */}
+      <div className="card" style={{ padding: '1.75rem', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 800 }}>SEPTEMBER 2026 INVOICE:</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#071A0B', margin: '4px 0' }}>₦10,000.00</div>
+          <div style={{ fontSize: '0.82rem', color: '#15803D', fontWeight: 700 }}>
+            {hasPaidCurrent ? '✓ Settled & Verified for Flat L1H2A' : 'Due Date: September 5, 2026'}
           </div>
         </div>
 
+        {!hasPaidCurrent ? (
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="btn btn-primary"
+            style={{ backgroundColor: '#15803D', padding: '0.75rem 1.5rem', fontWeight: 800, fontSize: '0.92rem', gap: '0.5rem' }}
+          >
+            <CreditCard size={18} /> Pay ₦10,000 Now (Paystack / Remita)
+          </button>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#FFFFFF', padding: '0.5rem 1rem', borderRadius: 6, border: '1px solid #BBF7D0' }}>
+            <CheckCircle2 size={20} color="#15803D" />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#166534' }}>Paid in Full</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Ref: {receiptNo}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* History Table */}
+      <div className="card">
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-light)', fontWeight: 800 }}>
+          Payment History & Receipts
+        </div>
         <div className="table-container">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Invoice Title</th>
-                <th>Due Date</th>
+                <th>Invoice Ref</th>
+                <th>Billing Cycle</th>
                 <th>Amount</th>
+                <th>Payment Date</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th>Receipt</th>
               </tr>
             </thead>
             <tbody>
-              {unpaidBills.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-subtle)' }}>
-                    ✓ No outstanding bills. Your account is in good standing!
+              {history.map((h) => (
+                <tr key={h.id}>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{h.id}</td>
+                  <td><strong>{h.month}</strong></td>
+                  <td>₦{h.amount.toLocaleString()}</td>
+                  <td>{h.date}</td>
+                  <td>
+                    <span className={`badge ${h.status === 'paid' ? 'badge-success' : 'badge-danger'}`}>
+                      {h.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td>
+                    {h.status === 'paid' ? (
+                      <button onClick={() => window.print()} className="btn btn-outline btn-sm" style={{ fontSize: '0.72rem', gap: '0.3rem' }}>
+                        <Download size={12} /> Receipt (PDF)
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#EF4444' }}>Unpaid</span>
+                    )}
                   </td>
                 </tr>
-              ) : (
-                unpaidBills.map((b) => (
-                  <tr key={b.id}>
-                    <td><strong>{b.title}</strong></td>
-                    <td>{formatDate(b.dueDate)}</td>
-                    <td style={{ fontWeight: 800, color: 'var(--army-green-900)' }}>{formatNaira(b.totalAmount || b.amount || 0)}</td>
-                    <td><span className="badge badge-warning">Unpaid</span></td>
-                    <td>
-                      <button onClick={() => setSelectedBillForPayment(b)} className="btn btn-primary btn-sm">
-                        Pay Invoice
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {selectedBillForPayment && (
-        <PaymentModal
-          bill={selectedBillForPayment}
-          onClose={() => setSelectedBillForPayment(null)}
-          onSuccess={() => setSelectedBillForPayment(null)}
-        />
-      )}
+      <PaymentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        amount={10000}
+        description="September 2026 Estate Monthly Service Charge (Flat L1H2A)"
+        invoiceId="INV-2026-009"
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 };
+
+export default TenantBillingPage;

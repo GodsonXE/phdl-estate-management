@@ -1,499 +1,169 @@
 import React, { useState } from 'react';
-import { usePhdlStore } from '../../data/storage';
-import { Flat, Tenant, LeaseAgreement, Dependent } from '../../types';
-import { Users, UserPlus, FileText, Phone, Mail, CheckCircle2, X, PlusCircle } from 'lucide-react';
-import { formatNaira, formatDate, getStatusBadgeClass, getStatusLabel, getRentCycleDetails } from '../../utils/formatters';
+import { usePhdlStore, EstateFlat } from '../../data/storage';
+import {
+  Users,
+  Plus,
+  Edit3,
+  CheckCircle2,
+  Building,
+  Building2,
+  Phone,
+  Printer,
+  Save,
+  Sparkles,
+} from 'lucide-react';
 
 export const SoldierTenantsPage: React.FC = () => {
   const store = usePhdlStore();
-  const currentEstateId = store.getActiveEstateId();
-  const activeSoldierId = store.getActiveSoldierId();
-  const soldier = store.getSoldierById(activeSoldierId) || store.getSoldiers()[0];
-  const allFlats = store.getFlats(currentEstateId);
-  const myFlats = allFlats.filter((f) => soldier.ownedFlatIds.includes(f.id));
-  const tenants = store.getTenants(currentEstateId);
-  const leases = store.getLeases();
-  const dependents = store.getDependents();
+  const flats: EstateFlat[] = store.getFlats ? store.getFlats() : [];
 
-  const myTenants = tenants.filter((t) => t.landlordId === soldier.id);
-
-  const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const [showAddDepModal, setShowAddDepModal] = useState(false);
-  const [selectedTenantForDep, setSelectedTenantForDep] = useState<Tenant | null>(null);
-  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
-
-  // Tenant Onboarding Form
-  const [targetFlatId, setTargetFlatId] = useState(myFlats[0]?.id || 'flat-1');
-  const [tenantName, setTenantName] = useState('');
-  const [tenantPhone, setTenantPhone] = useState('+234 80');
-  const [tenantEmail, setTenantEmail] = useState('');
-  const [tenantOccupation, setTenantOccupation] = useState('');
-  const [tenantEmployer, setTenantEmployer] = useState('');
-  const [rentAmount, setRentAmount] = useState<number>(1800000);
-  const [leaseStart, setLeaseStart] = useState('2026-09-01');
-  const [leaseEnd, setLeaseEnd] = useState('2027-08-31');
-  const [nokName, setNokName] = useState('');
-  const [nokPhone, setNokPhone] = useState('+234 80');
-  const [nokRel, setNokRel] = useState('Spouse');
-
-  // Dependent Form
-  const [depName, setDepName] = useState('');
-  const [depRel, setDepRel] = useState<Dependent['relationship']>('Spouse');
-  const [depAge, setDepAge] = useState<number>(30);
-  const [depGender, setDepGender] = useState<'Male' | 'Female'>('Female');
-
-  const handleOnboardTenant = (e: React.FormEvent) => {
-    e.preventDefault();
-    const tId = `tenant-${Date.now()}`;
-    const flat = myFlats.find((f) => f.id === targetFlatId) || myFlats[0];
-
-    const newTenant: Tenant = {
-      id: tId,
-      fullName: tenantName,
-      phone: tenantPhone,
-      email: tenantEmail,
-      occupation: tenantOccupation,
-      employer: tenantEmployer,
-      flatId: flat.id,
-      landlordId: soldier.id,
-      estateId: currentEstateId,
-      rentStartDate: leaseStart,
-      rentExpiryDate: leaseEnd,
-      leaseStart,
-      leaseEnd,
-      rentAmount,
-      annualRentAmount: rentAmount,
+  const [tenants, setTenants] = useState([
+    {
+      id: 'st-01',
+      fullName: 'Engr. Emeka Gabriel Okon',
+      phone: '+234 803 456 7890',
+      email: 'emeka.okon@gmail.com',
+      flatCode: 'L1H2A',
+      monthlyRent: 150000,
+      leaseStartDate: '2025-01-01',
+      leaseEndDate: '2025-12-31',
       status: 'active',
-      nextOfKinName: nokName,
-      nextOfKinPhone: nokPhone,
-      nextOfKinRelationship: nokRel,
-      idCardNumber: `PHDL-UNT-T-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
-      dependentsCount: 0,
-      dependents: [],
-      createdAt: new Date().toISOString(),
-    };
+      serviceChargeStatus: 'paid',
+    },
+  ]);
 
-    store.addTenant(newTenant);
-    setShowOnboardModal(false);
-    setNoticeMessage(`Civilian tenant ${tenantName} successfully onboarded for Flat ${flat.fullFlatCode}.`);
-    setTimeout(() => setNoticeMessage(null), 4000);
-  };
+  const [isAdding, setIsAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [selectedFlat, setSelectedFlat] = useState('L1H1A');
+  const [rent, setRent] = useState(150000);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const handleAddDependent = (e: React.FormEvent) => {
+  const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTenantForDep) return;
-
-    const newDep: Dependent = {
-      id: `dep-${Date.now()}`,
-      linkedToId: selectedTenantForDep.id,
-      fullName: depName,
-      relationship: depRel,
-      age: depAge,
-      gender: depGender.toLowerCase() as 'male' | 'female',
+    const created = {
+      id: `st-${Date.now()}`,
+      fullName: name,
+      phone,
+      email: email || `${name.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+      flatCode: selectedFlat,
+      monthlyRent: Number(rent),
+      leaseStartDate: '2026-01-01',
+      leaseEndDate: '2026-12-31',
+      status: 'active',
+      serviceChargeStatus: 'paid',
     };
-
-    store.addDependent(newDep, selectedTenantForDep.id);
-    setShowAddDepModal(false);
-    setDepName('');
-    setNoticeMessage(`Dependent ${depName} registered under ${selectedTenantForDep.fullName}'s household.`);
-    setTimeout(() => setNoticeMessage(null), 3500);
+    setTenants([...tenants, created]);
+    setIsAdding(false);
+    setName('');
+    setPhone('');
+    setNotice(`Tenant ${name} registered to Flat ${selectedFlat}!`);
+    setTimeout(() => setNotice(null), 3500);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-            <span className="badge badge-military">TENANCY MANAGEMENT</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-subtle)' }}>
-              {soldier.rank} {soldier.fullName}
-            </span>
+          <div className="section-overline">
+            <span>SOLDIER LANDLORD PORTAL</span> • <span>SUBLET TENANCY REGISTRY</span>
           </div>
-          <h2>Tenant Onboarding, Contracts & Dependents</h2>
-          <p style={{ fontSize: '0.875rem' }}>
-            Manage civilian lease agreements, rent payment records, and household dependent security registries.
-          </p>
+          <h1>My Sublet Tenants & Leases</h1>
+          <p>Manage civilian occupants in your allocated properties, monitor lease agreements, and track rental yields.</p>
         </div>
 
-        <button onClick={() => setShowOnboardModal(true)} className="btn btn-primary" style={{ gap: '0.4rem' }}>
-          <UserPlus size={16} />
-          Onboard New Tenant
+        <button
+          type="button"
+          onClick={() => setIsAdding(true)}
+          className="btn btn-primary btn-sm"
+          style={{ backgroundColor: '#15803D', gap: '0.4rem', fontWeight: 800 }}
+        >
+          <Plus size={14} /> Add Sublet Tenant
         </button>
       </div>
 
-      {noticeMessage && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CheckCircle2 size={16} />
-          {noticeMessage}
+      {notice && (
+        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 6, fontWeight: 800 }}>
+          {notice}
         </div>
       )}
 
-      {/* Tenants List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {myTenants.length === 0 ? (
-          <div className="card" style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-subtle)' }}>
-            <Users size={48} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
-            <h3>No Civilian Tenants Currently Onboarded</h3>
-            <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
-              You have not registered any subletting tenants for your owned flats. Click "Onboard New Tenant" to add one.
-            </p>
-          </div>
-        ) : (
-          myTenants.map((tenant) => {
-            const flat = myFlats.find((f) => f.id === tenant.flatId);
-            const lease = leases.find((l) => l.tenantId === tenant.id);
-            const tenantDeps = dependents.filter((d) => d.linkedToId === tenant.id);
-
-            return (
-              <div key={tenant.id} className="card">
-                <div className="card-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', backgroundColor: '#E0F2FE', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
-                      {tenant.fullName.charAt(0)}
-                    </div>
-                    <div>
-                      <strong style={{ fontSize: '1.1rem', color: 'var(--primary-900)' }}>
-                        {tenant.fullName}
-                      </strong>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
-                        Resident at Flat {flat?.fullFlatCode} ({flat?.floor})
-                      </div>
-                    </div>
-                  </div>
-
-                  <span className={`badge ${getStatusBadgeClass(tenant.status || 'active')}`}>
-                    {getStatusLabel(tenant.status || 'active')}
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', fontSize: '0.85rem' }}>
-                  <div style={{ backgroundColor: 'var(--bg-surface-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>
-                      Bio-Data & Employment
-                    </div>
-                    <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      <div>Occupation: <strong>{tenant.occupation}</strong></div>
-                      <div>Employer: {tenant.employer}</div>
-                      <div>Phone: <strong>{tenant.phone}</strong></div>
-                      <div>Email: {tenant.email}</div>
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const startD = tenant.leaseStart || tenant.rentStartDate || '2026-01-01';
-                    const endD = tenant.leaseEnd || tenant.rentExpiryDate || '2026-12-31';
-                    const rentCycle = getRentCycleDetails(startD, endD);
-                    return (
-                      <div style={{ backgroundColor: '#F0FDF4', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid #BBF7D0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#166534', textTransform: 'uppercase', fontWeight: 700 }}>
-                            Annual Rent & Cycle
-                          </div>
-                          <span className={`badge ${rentCycle.badgeClass}`} style={{ fontSize: '0.675rem' }}>
-                            {rentCycle.badgeLabel}
-                          </span>
-                        </div>
-                        <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                          <div>Annual Rent: <strong style={{ color: '#166534' }}>{formatNaira(tenant.rentAmount || tenant.annualRentAmount || 1200000)}</strong></div>
-                          <div>Cycle: {formatDate(startD)} – {formatDate(endD)}</div>
-                          <div>Doc: <span style={{ color: 'var(--primary-700)', fontWeight: 600 }}>{(lease as any)?.agreementDocName || 'Digital Tenancy Agreement'}</span></div>
-                          <div style={{ marginTop: '0.35rem', height: 6, backgroundColor: '#DCFCE7', borderRadius: 99, overflow: 'hidden' }}>
-                            <div
-                              style={{
-                                height: '100%',
-                                width: `${rentCycle.progressPercent}%`,
-                                backgroundColor: rentCycle.isExpired ? '#DC2626' : rentCycle.isExpiringSoon ? '#D97706' : '#16A34A',
-                              }}
-                            />
-                          </div>
-                          <div style={{ fontSize: '0.675rem', color: 'var(--text-subtle)', fontStyle: 'italic' }}>
-                            Administered by PHDL SuperAdmin
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  <div style={{ backgroundColor: 'var(--bg-surface-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', textTransform: 'uppercase', fontWeight: 700 }}>
-                      Next of Kin Record
-                    </div>
-                    <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      <div>Name: <strong>{tenant.nextOfKinName}</strong></div>
-                      <div>Relationship: {tenant.nextOfKinRelationship}</div>
-                      <div>Contact: {tenant.nextOfKinPhone}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Household Dependents Registry Section */}
-                <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-light)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-900)' }}>
-                      Household Co-Residents / Dependents ({tenantDeps.length})
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSelectedTenantForDep(tenant);
-                        setShowAddDepModal(true);
-                      }}
-                      className="btn btn-outline btn-sm"
-                      style={{ gap: '0.3rem', fontSize: '0.75rem' }}
-                    >
-                      <PlusCircle size={13} />
-                      Register Dependent
-                    </button>
-                  </div>
-
-                  {tenantDeps.length > 0 ? (
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      {tenantDeps.map((dep) => (
-                        <div
-                          key={dep.id}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            backgroundColor: '#FFFFFF',
-                            border: '1px solid var(--border-light)',
-                            borderRadius: 'var(--radius-md)',
-                            fontSize: '0.8rem',
-                          }}
-                        >
-                          <strong>{dep.fullName}</strong> ({dep.relationship}, {dep.age} years)
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.775rem', color: 'var(--text-subtle)' }}>
-                      No dependents registered yet for this tenant.
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
+      <div className="card">
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tenant Name</th>
+                <th>Occupied Flat</th>
+                <th>Contact</th>
+                <th>Lease Term</th>
+                <th>Monthly Rent</th>
+                <th>Service Charge</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tenants.map((t) => (
+                <tr key={t.id}>
+                  <td><strong>{t.fullName}</strong></td>
+                  <td><span className="badge badge-military">Flat {t.flatCode}</span></td>
+                  <td>{t.phone}</td>
+                  <td style={{ fontSize: '0.78rem' }}>{t.leaseStartDate} to {t.leaseEndDate}</td>
+                  <td style={{ fontWeight: 800, color: 'var(--army-green-950)' }}>₦{t.monthlyRent.toLocaleString()}/mo</td>
+                  <td><span className="badge badge-success">₦10k Paid</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Onboard Tenant Modal */}
-      {showOnboardModal && (
-        <div className="modal-backdrop" onClick={() => setShowOnboardModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+      {isAdding && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 520 }}>
             <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <UserPlus size={18} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>Onboard Civilian Sublet Tenant</h3>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-subtle)' }}>
-                    Creates tenancy contract, updates flat status, and logs military audit trail
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => setShowOnboardModal(false)} className="btn btn-ghost btn-sm">
-                <X size={18} />
-              </button>
+              <h3 style={{ margin: 0, color: '#FFFFFF' }}>Add Sublet Tenant</h3>
+              <button onClick={() => setIsAdding(false)} className="btn btn-outline btn-sm">✕</button>
             </div>
+            <form onSubmit={handleAdd} style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Tenant Full Name *:</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="form-control" required />
+              </div>
 
-            <form onSubmit={handleOnboardTenant}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Select Owned Flat to Sublet</label>
-                  <select
-                    value={targetFlatId}
-                    onChange={(e) => setTargetFlatId(e.target.value)}
-                    className="form-select"
-                  >
-                    {myFlats.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        Flat {f.fullFlatCode} ({f.floor} - {getStatusLabel(f.status)})
-                      </option>
-                    ))}
-                  </select>
+                  <label className="form-label">Phone Number *:</label>
+                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="form-control" required />
                 </div>
-
-                <div className="form-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Tenant Full Name</label>
-                    <input
-                      type="text"
-                      value={tenantName}
-                      onChange={(e) => setTenantName(e.target.value)}
-                      placeholder="e.g. Barrister Olumide Johnson"
-                      className="form-control"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Phone Number</label>
-                    <input
-                      type="text"
-                      value={tenantPhone}
-                      onChange={(e) => setTenantPhone(e.target.value)}
-                      className="form-control"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Email Address</label>
-                    <input
-                      type="email"
-                      value={tenantEmail}
-                      onChange={(e) => setTenantEmail(e.target.value)}
-                      placeholder="tenant@email.com"
-                      className="form-control"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Occupation & Employer</label>
-                    <input
-                      type="text"
-                      value={tenantOccupation}
-                      onChange={(e) => setTenantOccupation(e.target.value)}
-                      placeholder="e.g. Senior Accountant, Zenith Bank"
-                      className="form-control"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Annual Rent Agreed (₦)</label>
-                    <input
-                      type="number"
-                      value={rentAmount}
-                      onChange={(e) => setRentAmount(Number(e.target.value))}
-                      className="form-control"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Lease End Date</label>
-                    <input
-                      type="date"
-                      value={leaseEnd}
-                      onChange={(e) => setLeaseEnd(e.target.value)}
-                      className="form-control"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Next of Kin */}
-                <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase' }}>
-                    Next of Kin Contact
-                  </span>
-                  <div className="form-row" style={{ marginTop: '0.5rem' }}>
-                    <input
-                      type="text"
-                      value={nokName}
-                      onChange={(e) => setNokName(e.target.value)}
-                      placeholder="Next of Kin Name"
-                      className="form-control"
-                      required
-                    />
-                    <input
-                      type="text"
-                      value={nokPhone}
-                      onChange={(e) => setNokPhone(e.target.value)}
-                      placeholder="Next of Kin Phone"
-                      className="form-control"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" onClick={() => setShowOnboardModal(false)} className="btn btn-outline">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" style={{ gap: '0.4rem' }}>
-                  <UserPlus size={16} />
-                  Complete Onboarding
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Dependent Modal */}
-      {showAddDepModal && selectedTenantForDep && (
-        <div className="modal-backdrop" onClick={() => setShowAddDepModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>
-                Register Dependent for {selectedTenantForDep.fullName}
-              </h3>
-              <button onClick={() => setShowAddDepModal(false)} className="btn btn-ghost btn-sm">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddDependent}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Dependent Full Name</label>
-                  <input
-                    type="text"
-                    value={depName}
-                    onChange={(e) => setDepName(e.target.value)}
-                    placeholder="e.g. Mrs. Maryam Eze or Junior Eze"
-                    className="form-control"
-                    required
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Relationship</label>
-                    <select
-                      value={depRel}
-                      onChange={(e) => setDepRel(e.target.value as any)}
-                      className="form-select"
-                    >
-                      <option value="Spouse">Spouse</option>
-                      <option value="Son">Son</option>
-                      <option value="Daughter">Daughter</option>
-                      <option value="Parent">Parent</option>
-                      <option value="Sibling">Sibling</option>
-                      <option value="Ward">Ward</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Age</label>
-                    <input
-                      type="number"
-                      value={depAge}
-                      onChange={(e) => setDepAge(Number(e.target.value))}
-                      className="form-control"
-                      min={1}
-                      max={100}
-                      required
-                    />
-                  </div>
+                  <label className="form-label">Monthly Rent (₦):</label>
+                  <input type="number" value={rent} onChange={(e) => setRent(Number(e.target.value))} className="form-control" required />
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button type="button" onClick={() => setShowAddDepModal(false)} className="btn btn-outline">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Dependent
-                </button>
+              {/* FIXED 400 FLATS SELECTOR */}
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Select Allocated Flat *:</label>
+                <select value={selectedFlat} onChange={(e) => setSelectedFlat(e.target.value)} className="form-select" required>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((laneNum) => {
+                    const laneFlats = flats.filter((f) => f.laneNumber === laneNum);
+                    return (
+                      <optgroup key={laneNum} label={`📍 Lane ${laneNum} (${laneFlats.length} Flats)`}>
+                        {laneFlats.map((f) => (
+                          <option key={f.id || f.flatCode} value={f.flatCode}>
+                            Flat {f.flatCode} — Lane {f.laneNumber}, House {f.houseNumber}{f.flatPosition} • {f.apartmentType}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setIsAdding(false)} className="btn btn-outline btn-sm">Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" style={{ backgroundColor: '#15803D' }}>Save Tenant</button>
               </div>
             </form>
           </div>
@@ -502,3 +172,5 @@ export const SoldierTenantsPage: React.FC = () => {
     </div>
   );
 };
+
+export default SoldierTenantsPage;

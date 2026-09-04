@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { IDCard } from '../../types';
+import { QrCode } from '../../types';
 import { Shield, CheckCircle2, AlertTriangle, Printer } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 
 interface IDCardBadgeProps {
-  card: IDCard;
+  card: QrCode;
   showPrintButton?: boolean;
 }
 

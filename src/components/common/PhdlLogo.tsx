@@ -1,27 +1,22 @@
-﻿import React from 'react';
+import React from 'react';
 
-export interface PhdlLogoProps {
-  size?: number;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-export const PhdlLogo: React.FC<PhdlLogoProps> = ({ size = 40, className, style }) => {
+export const PhdlLogo: React.FC<{ size?: number; className?: string }> = ({ size = 40, className = '' }) => {
   return (
     <img
       src="/phdl-logo.png"
-      alt="PHDL Official Logo"
+      alt="PHDL Official Crest"
       width={size}
       height={size}
       className={className}
       style={{
-        width: size,
-        height: size,
         objectFit: 'contain',
         display: 'inline-block',
-        verticalAlign: 'middle',
-        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))',
-        ...style,
+        flexShrink: 0,
+      }}
+      onError={(e) => {
+        // Fallback badge if image is missing
+        const target = e.target as HTMLImageElement;
+        target.style.display = 'none';
       }}
     />
   );

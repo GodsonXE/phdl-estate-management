@@ -2,387 +2,183 @@ import React, { useState } from 'react';
 import { usePhdlStore } from '../../data/storage';
 import { ActivePage } from '../../components/layout/Sidebar';
 import {
-  FileText,
+  LayoutDashboard,
   CreditCard,
-  IdCard,
+  QrCode,
   Users,
+  FileText,
   Shield,
-  Phone,
-  Mail,
-  UserCheck,
-  AlertCircle,
-  Building,
-  Calendar,
-  DollarSign,
-  Clock,
-  ArrowRight,
   CheckCircle2,
+  Clock,
+  Printer,
+  Download,
+  AlertTriangle,
+  ArrowRight,
 } from 'lucide-react';
-import { TenantProfileCompletionModal } from '../../components/onboarding/TenantProfileCompletionModal';
-import { formatNaira, formatDate } from '../../utils/formatters';
 
 interface TenantDashboardProps {
-  onNavigate: (page: ActivePage) => void;
+  onNavigate?: (page: ActivePage) => void;
 }
 
 export const TenantDashboard: React.FC<TenantDashboardProps> = ({ onNavigate }) => {
-  const store = usePhdlStore();
-  const currentEstateId = store.getActiveEstateId();
-  const activeTenantId = store.getActiveTenantId();
-  const tenants = store.getTenants() || [];
-  const activeTenant = tenants.find((t) => t.id === activeTenantId) || tenants[0];
-
-  const flats = store.getFlats(currentEstateId) || [];
-  const lanes = store.getLanes(currentEstateId) || [];
-  const soldiers = store.getSoldiers() || [];
-  const bills = store.getBills(currentEstateId) || [];
-
-  const flat = flats.find((f) => f.id === activeTenant?.flatId);
-  const lane = lanes.find((l) => l.id === flat?.laneId);
-  const soldierLandlord = soldiers.find((s) => s.id === activeTenant?.landlordId || s.id === flat?.ownerId);
-
-  // Filter bills for this tenant
-  const tenantBills = bills.filter((b) => b.tenantId === activeTenant?.id || b.flatId === flat?.id);
-  const unpaidBills = tenantBills.filter((b) => b.status === 'unpaid' || b.status === 'overdue');
-  const totalUnpaidAmount = unpaidBills.reduce((acc, b) => acc + (b.totalAmount || b.amount || 0), 0);
-
-  // Step 7 Profile Completion Modal Trigger
-  const [showProfileModal, setShowProfileModal] = useState<boolean>(
-    Boolean(activeTenant?.profileIncomplete)
-  );
-
-  // Landlord Details Modal
-  const [showLandlordModal, setShowLandlordModal] = useState(false);
-
-  if (!activeTenant) {
-    return (
-      <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-        <AlertCircle size={32} color="var(--army-red-700)" style={{ margin: '0 auto 1rem' }} />
-        <h3>No Active Tenancy Record Found</h3>
-        <p style={{ color: 'var(--text-muted)' }}>
-          Please complete tenant onboarding to access your residence portal.
-        </p>
-      </div>
-    );
-  }
+  const [hasPaidLevy, setHasPaidLevy] = useState(true);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* ========================================================= */}
-      {/* STEP 6: CONDITIONAL LANDLORD RESOLUTION BANNER            */}
-      {/* ========================================================= */}
-      {soldierLandlord && soldierLandlord.id !== 'soldier-unidentified' ? (
-        // Landlord is Resolved / Verified Soldier
-        <div
-          style={{
-            padding: '0.9rem 1.25rem',
-            backgroundColor: 'var(--army-green-50)',
-            border: '1.5px solid var(--army-green-700)',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.75rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: '50%',
-                backgroundColor: 'var(--army-green-800)',
-                color: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Shield size={20} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--army-green-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                VERIFIED ARMED FORCES LANDLORD
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--army-green-950)' }}>
-                Hi <strong>{activeTenant.fullName}</strong>, your landlord is{' '}
-                <strong>
-                  {soldierLandlord.rank} {soldierLandlord.fullName}
-                </strong>{' '}
-                ({soldierLandlord.militaryBranch}).
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowLandlordModal(true)}
-            className="btn btn-outline btn-sm"
-            style={{ gap: '0.3rem', borderColor: 'var(--army-green-800)', color: 'var(--army-green-950)', fontWeight: 700 }}
-          >
-            <UserCheck size={14} />
-            View Landlord Information
-          </button>
-        </div>
-      ) : (
-        // Landlord is Unknown / Unverified Free Text
-        <div
-          style={{
-            padding: '0.9rem 1.25rem',
-            backgroundColor: '#FFFBEB',
-            border: '1.5px solid #F59E0B',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.75rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <AlertCircle size={24} color="#D97706" />
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                LANDLORD REGISTRATION PENDING
-              </div>
-              <div style={{ fontSize: '0.85rem', color: '#78350F' }}>
-                {activeTenant.landlordNameUnverified
-                  ? `You registered your landlord as "${activeTenant.landlordNameUnverified}". PHDL is reconciling the official title.`
-                  : "We don't have your landlord's official information on file yet. You can add it below."}
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => onNavigate('tenant_profile')}
-            className="btn btn-outline btn-sm"
-            style={{ borderColor: '#D97706', color: '#92400E', fontWeight: 700 }}
-          >
-            Update Tenancy Details
-          </button>
-        </div>
-      )}
-
-      {/* Main Page Header */}
+      {/* 1. Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div className="section-overline">
-            <span>RESIDENT PORTAL</span> • <span>FLAT {flat?.fullFlatCode || 'L1H1A'} ({lane?.name || 'Lane 1'})</span>
+            <span>RESIDENT TENANT PORTAL</span> • <span>FLAT L1H2A (LANE 1, HOUSE 2)</span>
           </div>
-          <h1>Welcome, {activeTenant.fullName}</h1>
+          <h1>Welcome, Engr. Emeka Gabriel Okon</h1>
           <p>
-            Manage your 2-bedroom tenancy, service charge levies (₦10k/month in 3, 6, or 12-month bundles), and digital smart gate pass.
+            Official resident overview: Tenancy lease status, monthly ₦10,000 service charge ledger, and 24/7 digital gate barrier pass.
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => onNavigate('tenant_id_card')}
-            className="btn btn-outline"
-            style={{ gap: '0.4rem', borderColor: 'var(--army-green-800)', color: 'var(--army-green-950)' }}
-          >
-            <IdCard size={16} />
-            Digital Gate Pass
-          </button>
-          <button
-            onClick={() => onNavigate('tenant_billing')}
-            className="btn btn-primary"
-            style={{ gap: '0.4rem', backgroundColor: 'var(--army-green-800)' }}
-          >
-            <CreditCard size={16} />
-            Pay Levies & Rent
+          <button onClick={() => window.print()} className="btn btn-outline btn-sm" style={{ gap: '0.4rem' }}>
+            <Printer size={14} /> Export Resident Summary (PDF)
           </button>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="stat-grid">
+      {/* 2. Primary Stat Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+        {/* Service Charge Card */}
         <div
-          className="stat-card"
-          onClick={() => onNavigate('tenant_profile')}
-          style={{ cursor: 'pointer' }}
-          title="Click to view full residence profile"
+          className="card stat-card"
+          onClick={() => onNavigate && onNavigate('tenant_billing')}
+          style={{ cursor: 'pointer', borderLeft: '4px solid #15803D' }}
         >
-          <div>
-            <div className="stat-label">Assigned Residence</div>
-            <div className="stat-value" style={{ color: 'var(--army-green-800)' }}>
-              Flat {flat?.fullFlatCode || 'L1H1A'}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)' }}>SERVICE CHARGE (SEP 2026)</span>
+            <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CreditCard size={18} color="#15803D" />
             </div>
-            <div className="stat-subtext">{lane?.name || 'Lane 1'} • 2-Bedroom Suite →</div>
           </div>
-          <div className="stat-icon-wrapper">
-            <Building size={22} />
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--army-green-950)', marginTop: 8 }}>
+            ₦10,000.00
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: 800, marginTop: 4 }}>
+            ✓ Verified & Settled
           </div>
         </div>
 
+        {/* Gate Pass Card */}
         <div
-          className="stat-card"
-          onClick={() => onNavigate('tenant_profile')}
-          style={{ cursor: 'pointer' }}
-          title="Click to view tenancy agreement"
+          className="card stat-card"
+          onClick={() => onNavigate && onNavigate('tenant_id_card')}
+          style={{ cursor: 'pointer', borderLeft: '4px solid #D97706' }}
         >
-          <div>
-            <div className="stat-label">Tenancy Cycle Expiry</div>
-            <div className="stat-value" style={{ fontSize: '1.25rem' }}>
-              {formatDate(activeTenant.rentExpiryDate || '2026-12-31')}
-            </div>
-            <div className="stat-subtext">
-              Rent: {formatNaira(activeTenant.annualRentAmount || 1200000)} / year →
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)' }}>DIGITAL GATE PASS</span>
+            <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <QrCode size={18} color="#D97706" />
             </div>
           </div>
-          <div className="stat-icon-wrapper">
-            <Calendar size={22} />
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--army-green-950)', marginTop: 8 }}>
+            Active (Cleared)
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            Pass Ref: IDC-2026-002
           </div>
         </div>
 
+        {/* Household Dependents */}
         <div
-          className="stat-card"
-          onClick={() => onNavigate('tenant_billing')}
-          style={{ cursor: 'pointer' }}
-          title="Click to view billing and pay levies"
+          className="card stat-card"
+          onClick={() => onNavigate && onNavigate('tenant_dependents')}
+          style={{ cursor: 'pointer', borderLeft: '4px solid #2563EB' }}
         >
-          <div>
-            <div className="stat-label">Outstanding Bills / Levies</div>
-            <div className="stat-value" style={{ color: totalUnpaidAmount > 0 ? 'var(--army-red-700)' : 'var(--status-success-text)' }}>
-              {formatNaira(totalUnpaidAmount)}
-            </div>
-            <div className="stat-subtext">
-              {unpaidBills.length === 0 ? '✓ Account in Good Standing' : `${unpaidBills.length} unpaid invoices →`}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)' }}>REGISTERED HOUSEHOLD</span>
+            <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={18} color="#2563EB" />
             </div>
           </div>
-          <div className="stat-icon-wrapper">
-            <CreditCard size={22} />
+          <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--army-green-950)', marginTop: 8 }}>
+            4 Members
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#2563EB', fontWeight: 700, marginTop: 4 }}>
+            All Cleared for Gate Access
           </div>
         </div>
 
+        {/* Tenancy Agreement */}
         <div
-          className="stat-card"
-          onClick={() => onNavigate('tenant_dependents')}
-          style={{ cursor: 'pointer' }}
-          title="Click to manage household dependents"
+          className="card stat-card"
+          onClick={() => onNavigate && onNavigate('tenant_profile')}
+          style={{ cursor: 'pointer', borderLeft: '4px solid #9333EA' }}
         >
-          <div>
-            <div className="stat-label">Household Dependents</div>
-            <div className="stat-value">
-              {activeTenant.dependents?.length || activeTenant.dependentsCount || 0}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)' }}>TENANCY LEASE</span>
+            <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={18} color="#9333EA" />
             </div>
-            <div className="stat-subtext">Registered for Gate Clearance →</div>
           </div>
-          <div className="stat-icon-wrapper">
-            <Users size={22} />
+          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--army-green-950)', marginTop: 8 }}>
+            Expires Dec 2025
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            Landlord: Staff Sgt. Adamu
           </div>
         </div>
       </div>
 
-      {/* Quick Action Navigation Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-        <div
-          className="card"
-          style={{ padding: '1.25rem', cursor: 'pointer', transition: 'all 0.15s ease' }}
-          onClick={() => onNavigate('tenant_billing')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CreditCard size={18} color="var(--army-green-800)" />
-              <strong style={{ fontSize: '0.95rem', color: 'var(--army-green-950)' }}>Service Charge Levies</strong>
+      {/* 3. Quick Action Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 1rem 0', color: 'var(--army-green-950)' }}>
+            Allocated Apartment Particulars
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Apartment Unit:</span>
+              <strong>Flat L1H2A (Ground Floor Left)</strong>
             </div>
-            <ArrowRight size={16} color="var(--text-subtle)" />
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Lane & House:</span>
+              <strong>Lane 1 (House 2)</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Apartment Type:</span>
+              <strong>3-Bedroom Luxury Flat</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Prepaid Meter Number:</span>
+              <strong style={{ fontFamily: 'var(--font-mono)' }}>MTR-PHDL-1042</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Soldier Landlord:</span>
+              <strong>Staff Sgt. Adamu Mohammed (NN/8924/ARMY)</strong>
+            </div>
           </div>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Pay the mandatory standard ₦10,000 monthly service charge in official bulk tiers (3, 6, or 12 months).
-          </p>
         </div>
 
-        <div
-          className="card"
-          style={{ padding: '1.25rem', cursor: 'pointer', transition: 'all 0.15s ease' }}
-          onClick={() => onNavigate('tenant_dependents')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 1rem 0', color: 'var(--army-green-950)' }}>
+            Perimeter Security & Curfew Policy
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.82rem', color: '#334155' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={18} color="var(--army-green-800)" />
-              <strong style={{ fontSize: '0.95rem', color: 'var(--army-green-950)' }}>Household Dependents</strong>
+              <Shield size={16} color="#15803D" />
+              <span>24/7 RFID Gate Barrier operational across all 8 Lanes</span>
             </div>
-            <ArrowRight size={16} color="var(--text-subtle)" />
-          </div>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Add family members and wards to authorize their individual digital smart gate passes.
-          </p>
-        </div>
-
-        <div
-          className="card"
-          style={{ padding: '1.25rem', cursor: 'pointer', transition: 'all 0.15s ease' }}
-          onClick={() => onNavigate('tenant_id_card')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <IdCard size={18} color="var(--army-green-800)" />
-              <strong style={{ fontSize: '0.95rem', color: 'var(--army-green-950)' }}>Smart ID Pass</strong>
+              <Clock size={16} color="#B45309" />
+              <span>Mandatory <strong>22:00hrs Night Visitor Curfew</strong> active</span>
             </div>
-            <ArrowRight size={16} color="var(--text-subtle)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CheckCircle2 size={16} color="#15803D" />
+              <span>Emergency Security Control Room: <strong>+234 803 999 0001</strong></span>
+            </div>
           </div>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            View your official PHDL QR Gate Pass badge for security scanning at the main estate gate.
-          </p>
         </div>
       </div>
-
-      {/* ========================================================= */}
-      {/* STEP 7: DISMISSIBLE PROFILE COMPLETION MODAL              */}
-      {/* ========================================================= */}
-      {showProfileModal && (
-        <TenantProfileCompletionModal
-          tenant={activeTenant}
-          onClose={() => setShowProfileModal(false)}
-          onSaved={() => setShowProfileModal(false)}
-        />
-      )}
-
-      {/* Landlord Detail Modal */}
-      {showLandlordModal && soldierLandlord && (
-        <div className="modal-backdrop" onClick={() => setShowLandlordModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Shield size={18} />
-                <h3 style={{ fontSize: '1.05rem', margin: 0 }}>Soldier Landlord Particulars</h3>
-              </div>
-              <button onClick={() => setShowLandlordModal(false)} className="btn btn-ghost btn-sm" style={{ color: '#FFFFFF' }}>
-                ✕
-              </button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Landlord Name & Rank</div>
-                <strong style={{ fontSize: '1.1rem', color: 'var(--army-green-950)' }}>
-                  {soldierLandlord.rank} {soldierLandlord.fullName}
-                </strong>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Armed Forces Formation</div>
-                <div style={{ fontWeight: 600 }}>{soldierLandlord.militaryBranch} • {soldierLandlord.unitBrigade}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Service Number</div>
-                <div style={{ fontFamily: 'monospace', fontWeight: 800, color: 'var(--army-green-800)' }}>
-                  {soldierLandlord.serviceNumber}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Contact Phone & Email</div>
-                <div>{soldierLandlord.phone}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-subtle)' }}>{soldierLandlord.email}</div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setShowLandlordModal(false)} className="btn btn-primary">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export default TenantDashboard;

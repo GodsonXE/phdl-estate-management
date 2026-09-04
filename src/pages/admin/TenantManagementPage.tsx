@@ -1,776 +1,684 @@
-import React, { useState, useRef } from 'react';
-import { usePhdlStore } from '../../data/storage';
-import { Tenant, Flat, Lane } from '../../types';
-import { PhdlLogo } from '../../components/common/PhdlLogo';
+import React, { useState, useEffect } from 'react';
+import { usePhdlStore, TenantRecord } from '../../data/storage';
 import {
-    Users,
-    Search,
-    Filter,
-    Edit,
-    Trash2,
-    ShieldCheck,
-    Building,
-    Upload,
-    Download,
-    Printer,
-    CheckCircle2,
-    AlertCircle,
-    X,
-    Save,
-    Plus,
-    FileText,
-    FileSpreadsheet,
+  Users,
+  Search,
+  Filter,
+  Plus,
+  Edit3,
+  Save,
+  CheckCircle2,
+  Printer,
+  Building,
+  Building2,
+  UserCheck,
+  Shield,
+  Sparkles,
+  Phone,
+  Mail,
+  Briefcase,
+  Calendar,
+  CreditCard,
 } from 'lucide-react';
-import { formatNaira, formatDate } from '../../utils/formatters';
+
+const LANE_HOUSES_MAP: { [k: number]: number } = {
+  1: 9,
+  2: 17,
+  3: 18,
+  4: 18,
+  5: 16,
+  6: 8,
+  7: 7,
+  8: 7,
+};
+
+const DEFAULT_TENANTS: TenantRecord[] = [
+  {
+    id: 't-01',
+    fullName: 'Engr. Emeka Gabriel Okon',
+    phone: '+234 803 456 7890',
+    email: 'emeka.okon@gmail.com',
+    flatCode: 'L1H2A',
+    lane: 'Lane 1',
+    landlordSoldier: 'Staff Sgt. Adamu Mohammed',
+    landlordServiceNo: 'NN/8924/ARMY',
+    employment: 'Petroleum Engineer, NNPC Ltd',
+    leaseStartDate: '2025-01-01',
+    leaseEndDate: '2025-12-31',
+    kycStatus: 'verified',
+    monthlyRent: 150000,
+    serviceChargeStatus: 'paid',
+  },
+  {
+    id: 't-02',
+    fullName: 'Dr. (Mrs) Fatima Abubakar',
+    phone: '+234 802 112 3344',
+    email: 'fatima.abubakar@abuja.med.ng',
+    flatCode: 'L2H3C',
+    lane: 'Lane 2',
+    landlordSoldier: 'Major Ibrahim Bello',
+    landlordServiceNo: 'NA/7712/ARMY',
+    employment: 'Medical Consultant, National Hospital',
+    leaseStartDate: '2024-11-01',
+    leaseEndDate: '2025-10-31',
+    kycStatus: 'verified',
+    monthlyRent: 180000,
+    serviceChargeStatus: 'paid',
+  },
+  {
+    id: 't-03',
+    fullName: 'Barrister Oladipo Balogun',
+    phone: '+234 806 789 0123',
+    email: 'oladipo@balogunlegal.ng',
+    flatCode: 'L3H5B',
+    lane: 'Lane 3',
+    landlordSoldier: 'Lt. Col. Farouk Danjuma (Rtd.)',
+    landlordServiceNo: 'NA/3310/ARMY',
+    employment: 'Principal Partner, Balogun & Co. Legal',
+    leaseStartDate: '2025-02-01',
+    leaseEndDate: '2026-01-31',
+    kycStatus: 'verified',
+    monthlyRent: 200000,
+    serviceChargeStatus: 'pending',
+  },
+];
 
 export const TenantManagementPage: React.FC = () => {
-    const store = usePhdlStore();
-    const currentEstateId = store.getActiveEstateId();
-    const estate = store.getEstateById(currentEstateId);
-    const tenants = store.getTenants() || [];
-    const flats = store.getFlats(currentEstateId) || [];
-    const lanes = store.getLanes(currentEstateId) || [];
-    const soldiers = store.getSoldiers() || [];
-    const adminSignature = store.getSuperAdminSignature();
+  const store = usePhdlStore();
+  const [tenants, setTenants] = useState<TenantRecord[]>(() => {
+    const saved = localStorage.getItem('phdl_tenants_registry_v4');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return DEFAULT_TENANTS;
+  });
 
-    // Filters
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedLaneId, setSelectedLaneId] = useState<string>('all');
-    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [selectedLaneFilter, setSelectedLaneFilter] = useState('all');
+  const [selectedKycFilter, setSelectedKycFilter] = useState('all');
+  
+  // Modals
+  const [isOnboardingNew, setIsOnboardingNew] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<TenantRecord | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-    // Modals
-    const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
-    const [isCreating, setIsCreating] = useState(false);
-    const [showImportModal, setShowImportModal] = useState(false);
-    const [showPdfModal, setShowPdfModal] = useState(false);
-    const [notice, setNotice] = useState<string | null>(null);
+  // New Tenant Form State
+  const [newFullName, setNewFullName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newEmployment, setNewEmployment] = useState('');
+  const [newLane, setNewLane] = useState(1);
+  const [newHouse, setNewHouse] = useState(1);
+  const [newFlatPos, setNewFlatPos] = useState<'A' | 'B' | 'C' | 'D'>('A');
+  const [newLandlordName, setNewLandlordName] = useState('Staff Sgt. Adamu Mohammed');
+  const [newLandlordSrv, setNewLandlordSrv] = useState('NN/8924/ARMY');
+  const [newMonthlyRent, setNewMonthlyRent] = useState(150000);
+  const [newLeaseStart, setNewLeaseStart] = useState('2026-01-01');
+  const [newLeaseEnd, setNewLeaseEnd] = useState('2026-12-31');
 
-    // Form Fields
-    const [fullName, setFullName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [email, setEmail] = useState('');
-    const [flatId, setFlatId] = useState('');
-    const [rentAmount, setRentAmount] = useState<number>(1200000);
-    const [rentExpiryDate, setRentExpiryDate] = useState('2026-12-31');
-    const [occupation, setOccupation] = useState('');
-    const [employer, setEmployer] = useState('');
-    const [onboardingComplete, setOnboardingComplete] = useState<boolean>(true);
+  useEffect(() => {
+    localStorage.setItem('phdl_tenants_registry_v4', JSON.stringify(tenants));
+  }, [tenants]);
 
-    // CSV Import State
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [csvFile, setCsvFile] = useState<File | null>(null);
-    const [csvPreviewRows, setCsvPreviewRows] = useState<any[]>([]);
+  // Quick Pre-Fill Helper
+  const handleQuickPreFill = () => {
+    const randomSeed = Math.floor(Math.random() * 1000);
+    const sampleNames = ['Dr. Chinedu Eze', 'Amina Yusuf', 'Engr. Segun Ogundimu', 'Ngozi Okeke', 'Tariq Al-Mansoor'];
+    const sampleJobs = ['Senior Analyst, Central Bank of Nigeria', 'Senior Software Engineer, TechCorp', 'Principal Consultant, PWC', 'Civil Servant, Federal Ministry of Works'];
+    const chosenName = sampleNames[randomSeed % sampleNames.length];
 
-    // Filter logic
-    const filteredTenants = tenants.filter((tenant) => {
-        const flat = flats.find((f) => f.id === tenant.flatId);
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            if (
-                !tenant.fullName.toLowerCase().includes(q) &&
-                !tenant.phone.toLowerCase().includes(q) &&
-                !(flat?.fullFlatCode || '').toLowerCase().includes(q)
-            ) {
-                return false;
-            }
-        }
-        if (selectedLaneId !== 'all' && flat?.laneId !== selectedLaneId) return false;
-        if (selectedCategory === 'verified' && !tenant.onboardingComplete) return false;
-        if (selectedCategory === 'unverified' && tenant.onboardingComplete) return false;
-        return true;
-    });
+    setNewFullName(chosenName);
+    setNewPhone(`+234 80${(randomSeed % 9) + 1} ${(200 + randomSeed) % 900} ${(4000 + randomSeed) % 9000}`);
+    setNewEmail(`${chosenName.toLowerCase().replace(/[^a-z]/g, '')}@gmail.com`);
+    setNewEmployment(sampleJobs[randomSeed % sampleJobs.length]);
+    setNewLane((randomSeed % 8) + 1);
+    setNewHouse(((randomSeed % 6) + 1));
+    setNewFlatPos(['A', 'B', 'C', 'D'][randomSeed % 4] as any);
+    setNewMonthlyRent(160000 + (randomSeed % 4) * 20000);
+  };
 
-    const handleOpenCreate = () => {
-        setEditingTenant(null);
-        setFullName('');
-        setPhone('');
-        setEmail('');
-        setFlatId(flats[0]?.id || '');
-        setRentAmount(1200000);
-        setRentExpiryDate('2026-12-31');
-        setOccupation('Civilian Professional');
-        setEmployer('Private Sector');
-        setOnboardingComplete(true);
-        setIsCreating(true);
+  const computedFlatCode = `L${newLane}H${newHouse}${newFlatPos}`;
+
+  const handleCreateTenant = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created: TenantRecord = {
+      id: `t-${Date.now().toString().slice(-4)}`,
+      fullName: newFullName,
+      phone: newPhone,
+      email: newEmail || `${newFullName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+      flatCode: computedFlatCode,
+      lane: `Lane ${newLane}`,
+      landlordSoldier: newLandlordName,
+      landlordServiceNo: newLandlordSrv,
+      employment: newEmployment || 'Private Professional',
+      leaseStartDate: newLeaseStart,
+      leaseEndDate: newLeaseEnd,
+      kycStatus: 'verified',
+      monthlyRent: Number(newMonthlyRent),
+      serviceChargeStatus: 'paid',
     };
 
-    const handleOpenEdit = (t: Tenant) => {
-        setIsCreating(false);
-        setEditingTenant(t);
-        setFullName(t.fullName);
-        setPhone(t.phone);
-        setEmail(t.email);
-        setFlatId(t.flatId);
-        setRentAmount(t.annualRentAmount || 1200000);
-        setRentExpiryDate(t.rentExpiryDate || '2026-12-31');
-        setOccupation(t.occupation || '');
-        setEmployer(t.employer || '');
-        setOnboardingComplete(Boolean(t.onboardingComplete));
-    };
+    setTenants([created, ...tenants]);
+    setIsOnboardingNew(false);
+    setNotice(`🎉 Tenant profile for ${newFullName} registered to Flat ${computedFlatCode} (Lane ${newLane}, House ${newHouse}, Flat ${newFlatPos})!`);
+    setTimeout(() => setNotice(null), 4500);
 
-    const handleSaveTenant = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!fullName.trim() || !flatId) return;
+    // Reset Form
+    setNewFullName('');
+    setNewPhone('');
+    setNewEmail('');
+    setNewEmployment('');
+  };
 
-        if (isCreating) {
-            const newTenant: Tenant = {
-                id: `tenant-${Date.now()}`,
-                fullName: fullName.trim(),
-                phone: phone.trim(),
-                email: email.trim(),
-                flatId,
-                rentStartDate: new Date().toISOString().split('T')[0],
-                rentExpiryDate,
-                annualRentAmount: Number(rentAmount),
-                occupation: occupation.trim(),
-                employer: employer.trim(),
-                dependentsCount: 0,
-                dependents: [],
-                onboardingComplete,
-                createdAt: new Date().toISOString(),
-            };
-            store.addTenant(newTenant);
-            setNotice(`✓ Successfully created resident tenant: ${newTenant.fullName}`);
-        } else if (editingTenant) {
-            const updated: Tenant = {
-                ...editingTenant,
-                fullName: fullName.trim(),
-                phone: phone.trim(),
-                email: email.trim(),
-                flatId,
-                rentExpiryDate,
-                annualRentAmount: Number(rentAmount),
-                occupation: occupation.trim(),
-                employer: employer.trim(),
-                onboardingComplete,
-            };
-            store.updateTenant(updated);
-            setNotice(`✓ Updated tenant: ${updated.fullName}`);
-        }
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTenant) return;
+    const updated = tenants.map((t) => (t.id === editingTenant.id ? editingTenant : t));
+    setTenants(updated);
+    setEditingTenant(null);
+    setNotice(`Tenant profile for ${editingTenant.fullName} updated successfully!`);
+    setTimeout(() => setNotice(null), 3500);
+  };
 
-        setEditingTenant(null);
-        setIsCreating(false);
-        setTimeout(() => setNotice(null), 3500);
-    };
+  const filteredTenants = tenants.filter((t) => {
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const mName = t.fullName.toLowerCase().includes(q);
+      const mFlat = t.flatCode.toLowerCase().includes(q);
+      const mLandlord = t.landlordSoldier.toLowerCase().includes(q);
+      const mPhone = t.phone.toLowerCase().includes(q);
+      if (!mName && !mFlat && !mLandlord && !mPhone) return false;
+    }
+    if (selectedLaneFilter !== 'all' && t.lane !== `Lane ${selectedLaneFilter}`) return false;
+    if (selectedKycFilter !== 'all' && t.kycStatus !== selectedKycFilter) return false;
+    return true;
+  });
 
-    const handleDeleteTenant = (id: string, name: string) => {
-        if (window.confirm(`Are you sure you want to permanently delete tenant ${name}?`)) {
-            store.deleteTenant(id);
-            setNotice(`✓ Deleted tenant: ${name}`);
-            setTimeout(() => setNotice(null), 3500);
-        }
-    };
-
-    // CSV Parse Handler
-    const handleCsvSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setCsvFile(file);
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-            const parsed = lines.slice(1).map((line, idx) => {
-                const [name, phone, email, flatCode, rent, expiry] = line.split(',');
-                return {
-                    id: `csv-${idx}-${Date.now()}`,
-                    fullName: name?.trim() || 'Resident',
-                    phone: phone?.trim() || '+234 800 000 0000',
-                    email: email?.trim() || 'tenant@gmail.com',
-                    flatCode: flatCode?.trim() || 'L1H1A',
-                    annualRent: Number(rent) || 1200000,
-                    rentExpiryDate: expiry?.trim() || '2026-12-31',
-                };
-            });
-            setCsvPreviewRows(parsed);
-        };
-        reader.readAsText(file);
-    };
-
-    const handleCommitCsvImport = () => {
-        csvPreviewRows.forEach((row) => {
-            const flat = flats.find((f) => f.fullFlatCode === row.flatCode) || flats[0];
-            const newT: Tenant = {
-                id: `tenant-csv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                fullName: row.fullName,
-                phone: row.phone,
-                email: row.email,
-                flatId: flat ? flat.id : 'L1H1A',
-                rentStartDate: '2026-01-01',
-                rentExpiryDate: row.rentExpiryDate,
-                annualRentAmount: row.annualRent,
-                occupation: 'Civilian Professional',
-                employer: 'Private Sector',
-                dependentsCount: 0,
-                dependents: [],
-                onboardingComplete: true,
-                createdAt: new Date().toISOString(),
-            };
-            store.addTenant(newT);
-        });
-
-        setShowImportModal(false);
-        setCsvFile(null);
-        setCsvPreviewRows([]);
-        setNotice(`✓ Batch imported ${csvPreviewRows.length} tenant resident records.`);
-        setTimeout(() => setNotice(null), 3500);
-    };
-
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Action Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <div className="section-overline">
-                        <span>SUPERADMIN AUTHORITY</span> • <span>CIVILIAN TENANT REGISTRY</span>
-                    </div>
-                    <h1>Civilian Residents Database & Management</h1>
-                    <p>
-                        Create, modify, batch import, and export authenticated tenant rosters with official Commandant verification stamping.
-                    </p>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <button
-                        onClick={() => setShowImportModal(true)}
-                        className="btn btn-outline"
-                        style={{ gap: '0.4rem', borderColor: 'var(--army-green-800)', color: 'var(--army-green-950)' }}
-                    >
-                        <Upload size={16} />
-                        Import CSV Roster
-                    </button>
-                    <button
-                        onClick={() => setShowPdfModal(true)}
-                        className="btn btn-outline"
-                        style={{ gap: '0.4rem', borderColor: 'var(--army-green-800)', color: 'var(--army-green-950)' }}
-                    >
-                        <Printer size={16} />
-                        Export Official PDF
-                    </button>
-                    <button
-                        onClick={handleOpenCreate}
-                        className="btn btn-primary"
-                        style={{ gap: '0.4rem', backgroundColor: 'var(--army-green-800)' }}
-                    >
-                        <Plus size={16} />
-                        New Tenant
-                    </button>
-                </div>
-            </div>
-
-            {notice && (
-                <div style={{ padding: '0.85rem 1.25rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 'var(--radius-md)', fontWeight: 700 }}>
-                    {notice}
-                </div>
-            )}
-
-            {/* Filter Bar */}
-            <div className="card" style={{ padding: '1.25rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label">
-                            <Search size={14} style={{ display: 'inline', marginRight: 4 }} />
-                            Search Tenant / Flat:
-                        </label>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search by name, phone, flat..."
-                            className="form-control"
-                        />
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label">
-                            <Building size={14} style={{ display: 'inline', marginRight: 4 }} />
-                            Filter by Lane:
-                        </label>
-                        <select
-                            value={selectedLaneId}
-                            onChange={(e) => setSelectedLaneId(e.target.value)}
-                            className="form-select"
-                        >
-                            <option value="all">-- All Lanes --</option>
-                            {lanes.map((l) => (
-                                <option key={l.id} value={l.id}>{l.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label">
-                            <Filter size={14} style={{ display: 'inline', marginRight: 4 }} />
-                            Onboarding Category:
-                        </label>
-                        <select
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="form-select"
-                        >
-                            <option value="all">-- All Statuses --</option>
-                            <option value="verified">Verified Onboarded</option>
-                            <option value="unverified">Pending Completion</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Table */}
-            <div className="card">
-                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="card-title">
-                        <Users size={18} /> Civilian Residents Roster ({filteredTenants.length})
-                    </div>
-                    <span className="badge badge-military">SuperAdmin Full CRUD Active</span>
-                </div>
-
-                <div className="table-container">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Resident Particulars</th>
-                                <th>Assigned Flat & Lane</th>
-                                <th>Soldier Landlord</th>
-                                <th>Tenancy Period</th>
-                                <th>Annual Rent</th>
-                                <th>Onboarding</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredTenants.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-subtle)' }}>
-                                        No resident records found matching filters.
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredTenants.map((t) => {
-                                    const flat = flats.find((f) => f.id === t.flatId);
-                                    const lane = lanes.find((l) => l.id === flat?.laneId);
-                                    const landlord = soldiers.find((s) => s.id === t.landlordId || s.id === flat?.ownerId);
-
-                                    return (
-                                        <tr key={t.id}>
-                                            <td>
-                                                <strong style={{ color: 'var(--army-green-950)' }}>{t.fullName}</strong>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.phone}</div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.email}</div>
-                                            </td>
-                                            <td>
-                                                <strong>Flat {flat?.fullFlatCode || t.flatId}</strong>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>{lane?.name || 'Lane 1'}</div>
-                                            </td>
-                                            <td>
-                                                {landlord ? (
-                                                    <div>
-                                                        <span style={{ fontWeight: 700, color: 'var(--army-green-900)' }}>
-                                                            {landlord.rank} {landlord.fullName}
-                                                        </span>
-                                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                                            {landlord.militaryBranch}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <span style={{ color: '#D97706', fontSize: '0.8rem', fontWeight: 600 }}>
-                                                        {t.landlordNameUnverified || 'Unassigned'}
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                                                    {formatDate(t.rentStartDate || '2026-01-01')} → {formatDate(t.rentExpiryDate || '2026-12-31')}
-                                                </div>
-                                            </td>
-                                            <td style={{ fontWeight: 800, color: 'var(--army-green-900)' }}>
-                                                {formatNaira(t.annualRentAmount || 1200000)}
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${t.onboardingComplete ? 'badge-success' : 'badge-warning'}`}>
-                                                    {t.onboardingComplete ? '✓ Verified' : 'Pending'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div style={{ display: 'flex', gap: '0.35rem' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenEdit(t)}
-                                                        className="btn btn-outline btn-sm"
-                                                        style={{ padding: '4px 8px' }}
-                                                    >
-                                                        <Edit size={13} />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDeleteTenant(t.id, t.fullName)}
-                                                        className="btn btn-ghost btn-sm"
-                                                        style={{ color: 'var(--army-red-700)', padding: '4px 8px' }}
-                                                    >
-                                                        <Trash2 size={13} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* ========================================================= */}
-            {/* CREATE / EDIT TENANT MODAL                                */}
-            {/* ========================================================= */}
-            {(isCreating || editingTenant) && (
-                <div className="modal-backdrop" onClick={() => { setIsCreating(false); setEditingTenant(null); }}>
-                    <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
-                        <div className="modal-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Edit size={18} />
-                                <h3 style={{ fontSize: '1.05rem', margin: 0 }}>
-                                    {isCreating ? 'SuperAdmin: Register New Tenant' : 'SuperAdmin: Modify Tenant Particulars'}
-                                </h3>
-                            </div>
-                            <button onClick={() => { setIsCreating(false); setEditingTenant(null); }} className="btn btn-ghost btn-sm" style={{ color: '#FFFFFF' }}>
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSaveTenant}>
-                            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Full Name *</label>
-                                        <input
-                                            type="text"
-                                            value={fullName}
-                                            onChange={(e) => setFullName(e.target.value)}
-                                            className="form-control"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Phone Number *</label>
-                                        <input
-                                            type="text"
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            className="form-control"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-group" style={{ margin: 0 }}>
-                                    <label className="form-label">Email Address *</label>
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="form-control"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="form-group" style={{ margin: 0 }}>
-                                    <label className="form-label">Assigned Housing Unit (Flat) *</label>
-                                    <select
-                                        value={flatId}
-                                        onChange={(e) => setFlatId(e.target.value)}
-                                        className="form-select"
-                                        required
-                                    >
-                                        {flats.map((f) => {
-                                            const lane = lanes.find((l) => l.id === f.laneId);
-                                            return (
-                                                <option key={f.id} value={f.id}>
-                                                    {lane?.name}, Flat {f.fullFlatCode} (2-Bedroom Standard)
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Annual Rent (₦) *</label>
-                                        <input
-                                            type="number"
-                                            value={rentAmount}
-                                            onChange={(e) => setRentAmount(Number(e.target.value))}
-                                            className="form-control"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Rent Expiry Date *</label>
-                                        <input
-                                            type="date"
-                                            value={rentExpiryDate}
-                                            onChange={(e) => setRentExpiryDate(e.target.value)}
-                                            className="form-control"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Occupation</label>
-                                        <input
-                                            type="text"
-                                            value={occupation}
-                                            onChange={(e) => setOccupation(e.target.value)}
-                                            className="form-control"
-                                        />
-                                    </div>
-
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Employer</label>
-                                        <input
-                                            type="text"
-                                            value={employer}
-                                            onChange={(e) => setEmployer(e.target.value)}
-                                            className="form-control"
-                                        />
-                                    </div>
-                                </div>
-
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={onboardingComplete}
-                                        onChange={(e) => setOnboardingComplete(e.target.checked)}
-                                        style={{ width: 18, height: 18 }}
-                                    />
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                        Confirm & Approve Resident Tenancy Verification
-                                    </span>
-                                </label>
-                            </div>
-
-                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <button type="button" onClick={() => { setIsCreating(false); setEditingTenant(null); }} className="btn btn-ghost">
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn btn-primary" style={{ gap: '0.4rem', backgroundColor: 'var(--army-green-800)' }}>
-                                    <Save size={15} /> Save Resident Record
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* ========================================================= */}
-            {/* CSV BATCH IMPORT MODAL                                    */}
-            {/* ========================================================= */}
-            {showImportModal && (
-                <div className="modal-backdrop" onClick={() => setShowImportModal(false)}>
-                    <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
-                        <div className="modal-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <FileSpreadsheet size={18} />
-                                <h3 style={{ fontSize: '1.05rem', margin: 0 }}>Batch Import Tenants from CSV</h3>
-                            </div>
-                            <button onClick={() => setShowImportModal(false)} className="btn btn-ghost btn-sm" style={{ color: '#FFFFFF' }}>
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ border: '2px dashed var(--army-green-800)', borderRadius: 8, padding: '2rem', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleCsvSelect}
-                                    accept=".csv"
-                                    style={{ display: 'none' }}
-                                />
-                                <Upload size={32} color="var(--army-green-800)" style={{ margin: '0 auto 0.75rem' }} />
-                                <div style={{ fontWeight: 700, color: 'var(--army-green-950)' }}>
-                                    {csvFile ? csvFile.name : 'Select or drop your CSV file here'}
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '0.25rem' }}>
-                                    Format: FullName, Phone, Email, FlatCode, RentAmount, ExpiryDate
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="btn btn-outline btn-sm"
-                                    style={{ marginTop: '1rem', borderColor: 'var(--army-green-800)' }}
-                                >
-                                    Browse Computer
-                                </button>
-                            </div>
-
-                            {csvPreviewRows.length > 0 && (
-                                <div>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--army-green-900)', marginBottom: '0.4rem' }}>
-                                        Parsed Preview ({csvPreviewRows.length} Valid Records):
-                                    </div>
-                                    <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: 4 }}>
-                                        <table className="data-table" style={{ fontSize: '0.75rem' }}>
-                                            <thead>
-                                                <tr>
-                                                    <th>Name</th>
-                                                    <th>Phone</th>
-                                                    <th>Flat Code</th>
-                                                    <th>Rent (₦)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {csvPreviewRows.map((r, i) => (
-                                                    <tr key={i}>
-                                                        <td>{r.fullName}</td>
-                                                        <td>{r.phone}</td>
-                                                        <td><strong>{r.flatCode}</strong></td>
-                                                        <td>{r.annualRent}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <button onClick={() => setShowImportModal(false)} className="btn btn-ghost">Cancel</button>
-                            <button
-                                type="button"
-                                onClick={handleCommitCsvImport}
-                                disabled={csvPreviewRows.length === 0}
-                                className="btn btn-primary"
-                                style={{ gap: '0.4rem', backgroundColor: 'var(--army-green-800)' }}
-                            >
-                                <CheckCircle2 size={16} />
-                                Import {csvPreviewRows.length} Tenants
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ========================================================= */}
-            {/* A4 ISOLATED PDF DOCUMENT PREVIEW MODAL                    */}
-            {/* ========================================================= */}
-            {showPdfModal && (
-                <div className="modal-backdrop" onClick={() => setShowPdfModal(false)}>
-                    <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 840, maxHeight: '92vh', overflowY: 'auto', backgroundColor: '#FFFFFF' }}>
-                        <div className="modal-header" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Printer size={18} />
-                                <h3 style={{ fontSize: '1.05rem', margin: 0 }}>Official Authenticated Tenant Master Roster</h3>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => window.print()} className="btn btn-primary btn-sm" style={{ backgroundColor: 'var(--army-gold-500)', color: '#000', fontWeight: 800 }}>
-                                    <Printer size={14} /> Print Document
-                                </button>
-                                <button onClick={() => setShowPdfModal(false)} className="btn btn-ghost btn-sm" style={{ color: '#FFFFFF' }}>
-                                    <X size={18} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* A4 DOCUMENT BODY */}
-                        <div style={{ padding: '2.5rem', backgroundColor: '#FFFFFF', color: '#000000', fontFamily: 'serif' }}>
-                            {/* PHDL OFFICIAL SEAL HEADER */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '3px double #1B4D21', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                                <PhdlLogo size={64} />
-                                <div style={{ textAlign: 'center', flex: 1 }}>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1B4D21', letterSpacing: '0.05em' }}>
-                                        PHDL Estates
-                                    </div>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#991B1B' }}>
-                                        FEDERAL REPUBLIC OF NIGERIA • RC 676563
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>
-                                        HEADQUARTERS: Plot 1042 Mogadishu Cantonment, Asokoro, Abuja FCT
-                                    </div>
-                                </div>
-                                <div style={{ width: 64 }} />
-                            </div>
-
-                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                                <div style={{ fontSize: '1.05rem', fontWeight: 800, textDecoration: 'underline', textTransform: 'uppercase' }}>
-                                    AUTHENTICATED CIVILIAN RESIDENT TENANCY MASTER ROSTER
-                                </div>
-                                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 4 }}>
-                                    ESTATE: <strong>{estate?.name} ({estate?.code})</strong> • EXTRACT DATE: <strong>{new Date().toLocaleDateString('en-GB')}</strong>
-                                </div>
-                            </div>
-
-                            {/* TABLE */}
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', marginBottom: '2rem' }}>
-                                <thead>
-                                    <tr style={{ backgroundColor: '#F1F5F9', borderTop: '1.5px solid #000', borderBottom: '1.5px solid #000' }}>
-                                        <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #CBD5E1' }}>S/N</th>
-                                        <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #CBD5E1' }}>Resident Full Name</th>
-                                        <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #CBD5E1' }}>Flat Code</th>
-                                        <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #CBD5E1' }}>Phone Contact</th>
-                                        <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #CBD5E1' }}>Soldier Landlord</th>
-                                        <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #CBD5E1' }}>Rent (₦)</th>
-                                        <th style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #CBD5E1' }}>Expiry Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredTenants.map((t, idx) => {
-                                        const flat = flats.find((f) => f.id === t.flatId);
-                                        const landlord = soldiers.find((s) => s.id === t.landlordId || s.id === flat?.ownerId);
-                                        return (
-                                            <tr key={t.id} style={{ borderBottom: '1px solid #CBD5E1' }}>
-                                                <td style={{ padding: '6px 8px', border: '1px solid #CBD5E1' }}>{idx + 1}</td>
-                                                <td style={{ padding: '6px 8px', fontWeight: 700, border: '1px solid #CBD5E1' }}>{t.fullName}</td>
-                                                <td style={{ padding: '6px 8px', border: '1px solid #CBD5E1' }}>Flat {flat?.fullFlatCode || t.flatId}</td>
-                                                <td style={{ padding: '6px 8px', border: '1px solid #CBD5E1' }}>{t.phone}</td>
-                                                <td style={{ padding: '6px 8px', border: '1px solid #CBD5E1' }}>
-                                                    {landlord ? `${landlord.rank} ${landlord.fullName}` : t.landlordNameUnverified || 'Unassigned'}
-                                                </td>
-                                                <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, border: '1px solid #CBD5E1' }}>
-                                                    {formatNaira(t.annualRentAmount || 1200000)}
-                                                </td>
-                                                <td style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #CBD5E1' }}>
-                                                    {formatDate(t.rentExpiryDate || '2026-12-31')}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-
-                            {/* COMMANDANT SIGNATURE STAMP BLOCK */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2rem', borderTop: '1px solid #E2E8F0', paddingTop: '1.5rem' }}>
-                                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                                    <div>Security Classification: <strong>RESTRICTED / OFFICIAL USE ONLY</strong></div>
-                                    <div>Verification Hash: <strong>SHA256-{Date.now().toString(36).toUpperCase()}-PHDL</strong></div>
-                                    <div>SuperAdmin Officer ID: <strong>{adminSignature.adminId}</strong></div>
-                                </div>
-
-                                <div style={{ textAlign: 'center', minWidth: 240 }}>
-                                    <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-                                        <img src={adminSignature.signatureImage} alt="SuperAdmin Stamp" style={{ maxHeight: 54, maxWidth: 160 }} />
-                                    </div>
-                                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#1B4D21', textDecoration: 'overline' }}>
-                                        {adminSignature.fullName}
-                                    </div>
-                                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991B1B' }}>
-                                        {adminSignature.officialStampTitle}
-                                    </div>
-                                    <div style={{ fontSize: '0.68rem', color: '#64748B' }}>
-                                        Authorized Date: {new Date().toLocaleDateString('en-GB')}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* 1. Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <div className="section-overline">
+            <span>CIVILIAN TENANCY CONTROL</span> • <span>{filteredTenants.length} OF {tenants.length} RESIDENTS DISPLAYED</span>
+          </div>
+          <h1>Tenant Onboarding & Resident Management</h1>
+          <p>
+            Onboard subletting civilian residents, verify background KYC, enforce ₦10,000/mo service charge compliance, and allocate structured <strong>Lane, House/Block, and Flat numbers</strong>.
+          </p>
         </div>
-    );
+
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              handleQuickPreFill();
+              setIsOnboardingNew(true);
+            }}
+            className="btn btn-primary btn-sm"
+            style={{ backgroundColor: '#15803D', gap: '0.4rem', fontWeight: 800 }}
+          >
+            <Plus size={14} /> Onboard New Tenant (Quick Create)
+          </button>
+          <button onClick={() => window.print()} className="btn btn-outline btn-sm" style={{ gap: '0.4rem' }}>
+            <Printer size={14} /> Print Tenant Roster
+          </button>
+        </div>
+      </div>
+
+      {notice && (
+        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: '6px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <CheckCircle2 size={16} /> {notice}
+        </div>
+      )}
+
+      {/* 2. Filter & Search Bar */}
+      <div className="card" style={{ padding: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem' }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">
+              <Search size={14} style={{ display: 'inline', marginRight: 4 }} /> Search Tenant Name, Flat Code, or Landlord:
+            </label>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="e.g. Okon, L1H2A, Adamu, +234..."
+              className="form-control"
+            />
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">
+              <Building size={14} style={{ display: 'inline', marginRight: 4 }} /> Filter by Lane:
+            </label>
+            <select
+              value={selectedLaneFilter}
+              onChange={(e) => setSelectedLaneFilter(e.target.value)}
+              className="form-select"
+            >
+              <option value="all">-- All 8 Lanes --</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((l) => (
+                <option key={l} value={l.toString()}>Lane {l} ({LANE_HOUSES_MAP[l]} Houses)</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">
+              <Filter size={14} style={{ display: 'inline', marginRight: 4 }} /> KYC Status:
+            </label>
+            <select
+              value={selectedKycFilter}
+              onChange={(e) => setSelectedKycFilter(e.target.value)}
+              className="form-select"
+            >
+              <option value="all">-- All KYC Statuses --</option>
+              <option value="verified">Verified KYC</option>
+              <option value="pending">Pending Clearance</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Tenants Table */}
+      <div className="card">
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Resident Particulars</th>
+                <th>Assigned Flat (Lane • Block • Flat)</th>
+                <th>Soldier Landlord Owner</th>
+                <th>Lease Term</th>
+                <th>Service Charge</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTenants.map((t) => {
+                const laneNum = t.flatCode.match(/L(\d+)/)?.[1] || '1';
+                const houseNum = t.flatCode.match(/H(\d+)/)?.[1] || '1';
+                const pos = t.flatCode.slice(-1);
+
+                return (
+                  <tr key={t.id}>
+                    <td>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--army-green-950)' }}>{t.fullName}</strong>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        {t.employment} • 📞 {t.phone}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span className="badge badge-military" style={{ fontWeight: 800, fontSize: '0.78rem' }}>
+                          Flat {t.flatCode}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        Lane {laneNum} • House/Block {houseNum} • Flat {pos}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--army-green-950)' }}>
+                        {t.landlordSoldier}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        {t.landlordServiceNo}
+                      </div>
+                    </td>
+                    <td style={{ fontSize: '0.78rem' }}>
+                      <div>{t.leaseStartDate} to {t.leaseEndDate}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#15803D', fontWeight: 700 }}>₦{t.monthlyRent.toLocaleString()}/mo Rent</div>
+                    </td>
+                    <td>
+                      <span className={`badge ${t.serviceChargeStatus === 'paid' ? 'badge-success' : 'badge-danger'}`}>
+                        ₦10k {t.serviceChargeStatus.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => setEditingTenant({ ...t })}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.72rem', gap: '0.3rem', backgroundColor: '#1B4D21', padding: '0.3rem 0.65rem' }}
+                      >
+                        <Edit3 size={12} /> Modify Profile
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. MODAL: ONBOARD NEW TENANT (WITH STRUCTURED LANE, BLOCK & FLAT DETAILS) */}
+      {/* ========================================================================= */}
+      {isOnboardingNew && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 640 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <UserCheck size={18} color="#FBBF24" />
+                <h3 style={{ margin: 0, color: '#FFFFFF' }}>Onboard New Resident Tenant</h3>
+              </div>
+              <button onClick={() => setIsOnboardingNew(false)} className="btn btn-outline btn-sm">✕</button>
+            </div>
+
+            <form onSubmit={handleCreateTenant} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Quick Pre-fill Banner */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '0.65rem 0.85rem', borderRadius: 6 }}>
+                <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 700 }}>
+                  ⚡ Need sample data to test? Click Quick Pre-Fill:
+                </div>
+                <button
+                  type="button"
+                  onClick={handleQuickPreFill}
+                  className="btn btn-primary btn-sm"
+                  style={{ backgroundColor: '#15803D', fontSize: '0.72rem', gap: '0.3rem' }}
+                >
+                  <Sparkles size={12} /> Quick Pre-Fill
+                </button>
+              </div>
+
+              {/* 1. PERSONAL DETAILS */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Resident Full Name *:</label>
+                  <input
+                    type="text"
+                    value={newFullName}
+                    onChange={(e) => setNewFullName(e.target.value)}
+                    placeholder="e.g. Engr. Emeka Okon"
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Phone Number *:</label>
+                  <input
+                    type="text"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="+234 803 000 0000"
+                    className="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Email Address:</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="resident@gmail.com"
+                    className="form-control"
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Occupation / Employer *:</label>
+                  <input
+                    type="text"
+                    value={newEmployment}
+                    onChange={(e) => setNewEmployment(e.target.value)}
+                    placeholder="e.g. Senior Officer, CBN"
+                    className="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* 2. STRUCTURED ASSIGNED FLAT DETAILS (LANE • BLOCK • FLAT) */}
+              <div style={{ padding: '1rem', backgroundColor: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--army-green-950)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Building2 size={16} color="var(--army-green-800)" />
+                  Assigned Flat Particulars (Lane • House/Block • Flat Position):
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.75rem' }}>
+                  {/* Lane */}
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">1. Select Lane *:</label>
+                    <select
+                      value={newLane}
+                      onChange={(e) => {
+                        const l = Number(e.target.value);
+                        setNewLane(l);
+                        if (newHouse > LANE_HOUSES_MAP[l]) setNewHouse(1);
+                      }}
+                      className="form-select"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((l) => (
+                        <option key={l} value={l}>
+                          Lane {l} ({LANE_HOUSES_MAP[l]} Houses)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* House / Block */}
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">2. House / Block *:</label>
+                    <select
+                      value={newHouse}
+                      onChange={(e) => setNewHouse(Number(e.target.value))}
+                      className="form-select"
+                    >
+                      {Array.from({ length: LANE_HOUSES_MAP[newLane] || 9 }, (_, i) => i + 1).map((h) => (
+                        <option key={h} value={h}>
+                          House {h} (Block {h})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Flat Position */}
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">3. Flat Position *:</label>
+                    <select
+                      value={newFlatPos}
+                      onChange={(e) => setNewFlatPos(e.target.value as any)}
+                      className="form-select"
+                    >
+                      <option value="A">Flat A (Ground Left)</option>
+                      <option value="B">Flat B (Ground Right)</option>
+                      <option value="C">Flat C (Upper Left)</option>
+                      <option value="D">Flat D (Upper Right)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* COMPUTED FLAT BADGE */}
+                <div style={{ marginTop: '0.85rem', padding: '0.65rem 0.85rem', backgroundColor: '#FFFFFF', border: '1px solid #BBF7D0', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>OFFICIAL DESIGNATION:</span>
+                    <div style={{ fontWeight: 900, color: 'var(--army-green-950)', fontSize: '0.95rem' }}>
+                      Flat {computedFlatCode} (Lane {newLane}, House {newHouse}, Flat {newFlatPos})
+                    </div>
+                  </div>
+                  <span className="badge badge-success">400 Flats Verified</span>
+                </div>
+              </div>
+
+              {/* 3. SOLDIER LANDLORD LINKAGE */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Soldier Landlord Owner *:</label>
+                  <input
+                    type="text"
+                    value={newLandlordName}
+                    onChange={(e) => setNewLandlordName(e.target.value)}
+                    placeholder="e.g. Staff Sgt. Adamu Mohammed"
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Soldier Military Service No *:</label>
+                  <input
+                    type="text"
+                    value={newLandlordSrv}
+                    onChange={(e) => setNewLandlordSrv(e.target.value)}
+                    placeholder="e.g. NN/8924/ARMY"
+                    className="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* 4. LEASE & RENT */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Agreed Monthly Rent (₦):</label>
+                  <input
+                    type="number"
+                    value={newMonthlyRent}
+                    onChange={(e) => setNewMonthlyRent(Number(e.target.value))}
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Lease Commencement:</label>
+                  <input
+                    type="date"
+                    value={newLeaseStart}
+                    onChange={(e) => setNewLeaseStart(e.target.value)}
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Lease Expiry Date:</label>
+                  <input
+                    type="date"
+                    value={newLeaseEnd}
+                    onChange={(e) => setNewLeaseEnd(e.target.value)}
+                    className="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setIsOnboardingNew(false)} className="btn btn-outline">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#15803D', gap: '0.4rem', fontWeight: 800 }}>
+                  <UserCheck size={16} /> Complete Tenant Registration
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. MODAL: MODIFY EXISTING TENANT */}
+      {/* ========================================================================= */}
+      {editingTenant && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 540 }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, color: '#FFFFFF' }}>Modify Tenant Profile: {editingTenant.fullName}</h3>
+              <button onClick={() => setEditingTenant(null)} className="btn btn-outline btn-sm">✕</button>
+            </div>
+            <form onSubmit={handleSaveEdit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Full Name:</label>
+                <input
+                  type="text"
+                  value={editingTenant.fullName}
+                  onChange={(e) => setEditingTenant({ ...editingTenant, fullName: e.target.value })}
+                  className="form-control"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Phone Number:</label>
+                  <input
+                    type="text"
+                    value={editingTenant.phone}
+                    onChange={(e) => setEditingTenant({ ...editingTenant, phone: e.target.value })}
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Assigned Flat Code:</label>
+                  <input
+                    type="text"
+                    value={editingTenant.flatCode}
+                    onChange={(e) => setEditingTenant({ ...editingTenant, flatCode: e.target.value.toUpperCase() })}
+                    className="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Occupation / Employer:</label>
+                <input
+                  type="text"
+                  value={editingTenant.employment}
+                  onChange={(e) => setEditingTenant({ ...editingTenant, employment: e.target.value })}
+                  className="form-control"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Soldier Landlord Owner:</label>
+                  <input
+                    type="text"
+                    value={editingTenant.landlordSoldier}
+                    onChange={(e) => setEditingTenant({ ...editingTenant, landlordSoldier: e.target.value })}
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Landlord Service No:</label>
+                  <input
+                    type="text"
+                    value={editingTenant.landlordServiceNo}
+                    onChange={(e) => setEditingTenant({ ...editingTenant, landlordServiceNo: e.target.value })}
+                    className="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setEditingTenant(null)} className="btn btn-outline btn-sm">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" style={{ backgroundColor: '#1B4D21', gap: '0.4rem' }}>
+                  <Save size={14} /> Save Profile Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
+
+export default TenantManagementPage;

@@ -1,14 +1,20 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
+import { usePhdlStore, EstateFlat } from '../../data/storage';
 import { PhdlLogo } from '../../components/common/PhdlLogo';
 import { Role } from '../../types';
 import {
   Shield,
-  Building,
-  Users,
+  User,
   Lock,
-  ArrowLeft,
+  Mail,
+  Phone,
+  Building,
+  CheckCircle2,
   ArrowRight,
   Sparkles,
+  KeyRound,
+  UserCheck,
+  Building2,
 } from 'lucide-react';
 
 interface AuthPageProps {
@@ -24,372 +30,374 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   onLoginSuccess,
   onBackToLanding,
 }) => {
+  const store = usePhdlStore();
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [selectedRole, setSelectedRole] = useState<Role>(initialRole);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  
+  // Login Form
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Register Form
+  const [regFullName, setRegFullName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regServiceNo, setRegServiceNo] = useState('');
+  const [regRank, setRegRank] = useState('Staff Sergeant');
+  const [regPassword, setRegPassword] = useState('');
+  const [regFlatCode, setRegFlatCode] = useState('L1H1A');
+
+  const flats: EstateFlat[] = store.getFlats ? store.getFlats() : [];
+
+  // Group flats by Lane (1 to 8)
+  const lanes = [1, 2, 3, 4, 5, 6, 7, 8];
+
+  const handleQuickLogin = (role: Role) => {
+    store.setActiveRole(role);
+    onLoginSuccess(role);
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    store.setActiveRole(selectedRole);
     onLoginSuccess(selectedRole);
   };
 
-  const handleQuickDemoAccess = (role: Role) => {
-    setSelectedRole(role);
-    onLoginSuccess(role);
+  const handleRegisterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    store.setActiveRole(selectedRole);
+    onLoginSuccess(selectedRole);
   };
 
   return (
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: '#041409',
-        backgroundImage: 'linear-gradient(180deg, rgba(4, 20, 9, 0.88) 0%, rgba(7, 26, 11, 0.94) 100%), url("/estate-hero-bg.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundColor: '#071A0B',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '2rem 1rem',
-        fontFamily: 'var(--font-sans, system-ui, sans-serif)',
-        color: '#FFFFFF',
+        padding: '1.5rem',
+        backgroundImage: 'radial-gradient(circle at 50% 20%, rgba(27, 77, 33, 0.4) 0%, rgba(7, 26, 11, 0.95) 75%)',
       }}
     >
-      {/* Top Back Button */}
-      <div style={{ width: '100%', maxWidth: 480, marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button
-          onClick={onBackToLanding}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'rgba(255, 255, 255, 0.8)',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-          }}
-        >
-          <ArrowLeft size={16} /> Return to Home Landing Page
-        </button>
-        <span style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 800 }}>
-          RC 676563
-        </span>
-      </div>
-
-      {/* Main Authentication Card */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 480,
-          backgroundColor: 'rgba(7, 26, 11, 0.95)',
-          backdropFilter: 'blur(16px)',
-          border: '1.5px solid rgba(245, 158, 11, 0.35)',
-          borderRadius: '12px',
-          padding: '2rem',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
-        }}
-      >
+      <div style={{ width: '100%', maxWidth: 520, margin: '0 auto' }}>
+        {/* Logo & Header */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
-            <PhdlLogo size={52} />
+          <div style={{ display: 'inline-block', cursor: 'pointer' }} onClick={onBackToLanding}>
+            <PhdlLogo size={64} />
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#FFFFFF', margin: 0 }}>
-            {mode === 'login' ? 'Command Portal Sign-In' : 'Resident & Landlord Registration'}
+          <h2 style={{ color: '#FFFFFF', fontWeight: 900, fontSize: '1.4rem', marginTop: '0.75rem', letterSpacing: '0.02em' }}>
+            POST-HOUSING DEVELOPMENT LIMITED
           </h2>
-          <div style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 700, marginTop: '0.25rem' }}>
-            PHDL Estates
+          <div style={{ fontSize: '0.75rem', color: '#FBBF24', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Armed Forces Housing Scheme • RC 676563
           </div>
         </div>
 
-        {/* Tab Switcher: Sign In vs Register */}
+        {/* Auth Card */}
         <div
+          className="card"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            padding: '4px',
-            borderRadius: '8px',
-            marginBottom: '1.5rem',
-            border: '1px solid rgba(255,255,255,0.1)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 12,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            overflow: 'hidden',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setMode('login')}
-            style={{
-              padding: '0.6rem',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: mode === 'login' ? '#15803D' : 'transparent',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              transition: '0.2s',
-            }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('register')}
-            style={{
-              padding: '0.6rem',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: mode === 'register' ? '#991B1B' : 'transparent',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              transition: '0.2s',
-            }}
-          >
-            Create Account
-          </button>
-        </div>
-
-        {/* Role Selector Tabs */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255, 255, 255, 0.75)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
-            Select User Clearance Tier:
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem' }}>
-            <button
-              type="button"
-              onClick={() => setSelectedRole('phdl_admin')}
-              style={{
-                padding: '0.5rem 0.2rem',
-                borderRadius: '6px',
-                border: `1.5px solid ${selectedRole === 'phdl_admin' ? '#EF4444' : 'rgba(255,255,255,0.15)'}`,
-                backgroundColor: selectedRole === 'phdl_admin' ? 'rgba(153, 27, 27, 0.4)' : 'rgba(0,0,0,0.3)',
-                color: '#FFFFFF',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              🛡️ SuperAdmin
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedRole('soldier')}
-              style={{
-                padding: '0.5rem 0.2rem',
-                borderRadius: '6px',
-                border: `1.5px solid ${selectedRole === 'soldier' ? '#22C55E' : 'rgba(255,255,255,0.15)'}`,
-                backgroundColor: selectedRole === 'soldier' ? 'rgba(21, 128, 61, 0.4)' : 'rgba(0,0,0,0.3)',
-                color: '#FFFFFF',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              🪖 Soldier Owner
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedRole('tenant')}
-              style={{
-                padding: '0.5rem 0.2rem',
-                borderRadius: '6px',
-                border: `1.5px solid ${selectedRole === 'tenant' ? '#F59E0B' : 'rgba(255,255,255,0.15)'}`,
-                backgroundColor: selectedRole === 'tenant' ? 'rgba(217, 119, 6, 0.4)' : 'rgba(0,0,0,0.3)',
-                color: '#FFFFFF',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              🏠 Resident Tenant
-            </button>
-          </div>
-        </div>
-
-        {/* Form Inputs */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-          {mode === 'register' && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-                Full Name (with Rank if military)
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Major S. Bello / Emeka Okon"
-                required
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 0.75rem',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                  boxSizing: 'border-box',
-                }}
-              />
+          {/* Quick 1-Click Role Login Bar */}
+          <div style={{ padding: '1rem 1.25rem', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Sparkles size={13} color="var(--army-gold-600)" />
+              1-Click Instant Test Portals:
             </div>
-          )}
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-              Email Address / Service Number
-            </label>
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={
-                selectedRole === 'phdl_admin'
-                  ? 'commandant.hq@phdl.gov.ng'
-                  : selectedRole === 'soldier'
-                    ? 's.adamu@phdl.gov.ng'
-                    : 'resident@gmail.com'
-              }
-              style={{
-                width: '100%',
-                padding: '0.65rem 0.75rem',
-                borderRadius: '6px',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: '#FFFFFF',
-                fontSize: '0.85rem',
-                boxSizing: 'border-box',
-              }}
-            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem' }}>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('phdl_admin')}
+                className="btn btn-outline btn-sm"
+                style={{ fontSize: '0.72rem', borderColor: '#15803D', color: '#15803D', fontWeight: 800 }}
+              >
+                🏛️ Admin HQ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('soldier')}
+                className="btn btn-outline btn-sm"
+                style={{ fontSize: '0.72rem', borderColor: '#D97706', color: '#B45309', fontWeight: 800 }}
+              >
+                🪖 Soldier
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('tenant')}
+                className="btn btn-outline btn-sm"
+                style={{ fontSize: '0.72rem', borderColor: '#2563EB', color: '#1D4ED8', fontWeight: 800 }}
+              >
+                🏠 Tenant
+              </button>
+            </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-              Password / Access PIN
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+          {/* Mode Switcher Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0' }}>
+            <button
+              type="button"
+              onClick={() => setMode('login')}
               style={{
-                width: '100%',
-                padding: '0.65rem 0.75rem',
-                borderRadius: '6px',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: '#FFFFFF',
-                fontSize: '0.85rem',
-                boxSizing: 'border-box',
+                flex: 1,
+                padding: '0.85rem',
+                border: 'none',
+                backgroundColor: mode === 'login' ? '#FFFFFF' : '#F1F5F9',
+                color: mode === 'login' ? '#1B4D21' : '#64748B',
+                fontWeight: mode === 'login' ? 800 : 600,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                borderBottom: mode === 'login' ? '3px solid #1B4D21' : 'none',
               }}
-            />
+            >
+              Sign In to Account
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('register')}
+              style={{
+                flex: 1,
+                padding: '0.85rem',
+                border: 'none',
+                backgroundColor: mode === 'register' ? '#FFFFFF' : '#F1F5F9',
+                color: mode === 'register' ? '#1B4D21' : '#64748B',
+                fontWeight: mode === 'register' ? 800 : 600,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                borderBottom: mode === 'register' ? '3px solid #1B4D21' : 'none',
+              }}
+            >
+              New Resident Registration
+            </button>
           </div>
 
+          <div style={{ padding: '1.5rem' }}>
+            {/* Role Selection Tabs */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label className="form-label" style={{ marginBottom: '0.4rem', display: 'block' }}>
+                Select User Portal:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                {[
+                  { r: 'phdl_admin' as Role, label: 'SuperAdmin HQ' },
+                  { r: 'soldier' as Role, label: 'Soldier Landlord' },
+                  { r: 'tenant' as Role, label: 'Resident Tenant' },
+                ].map((item) => (
+                  <button
+                    key={item.r}
+                    type="button"
+                    onClick={() => setSelectedRole(item.r)}
+                    style={{
+                      padding: '0.5rem 0.4rem',
+                      borderRadius: 6,
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      border: selectedRole === item.r ? '2px solid #1B4D21' : '1px solid #CBD5E1',
+                      backgroundColor: selectedRole === item.r ? '#F0FDF4' : '#FFFFFF',
+                      color: selectedRole === item.r ? '#15803D' : '#334155',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* LOGIN FORM */}
+            {mode === 'login' && (
+              <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Email or Military Service ID:</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder={selectedRole === 'soldier' ? 'e.g. NN/8924/ARMY or s.adamu@phdl.gov.ng' : 'e.g. resident@phdl.gov.ng'}
+                      className="form-control"
+                      style={{ paddingLeft: '2.2rem' }}
+                      required
+                    />
+                    <Mail size={16} color="#64748B" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Password:</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="form-control"
+                      style={{ paddingLeft: '2.2rem' }}
+                      required
+                    />
+                    <Lock size={16} color="#64748B" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#1B4D21', padding: '0.65rem', fontWeight: 800, gap: '0.4rem', marginTop: '0.5rem' }}
+                >
+                  <KeyRound size={16} /> Access Portal as {selectedRole === 'phdl_admin' ? 'SuperAdmin' : selectedRole === 'soldier' ? 'Soldier' : 'Tenant'}
+                </button>
+              </form>
+            )}
+
+            {/* REGISTER FORM */}
+            {mode === 'register' && (
+              <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Full Name *:</label>
+                  <input
+                    type="text"
+                    value={regFullName}
+                    onChange={(e) => setRegFullName(e.target.value)}
+                    placeholder="e.g. Engr. Emeka Okon"
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                {selectedRole === 'soldier' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Rank:</label>
+                      <select value={regRank} onChange={(e) => setRegRank(e.target.value)} className="form-select">
+                        <option value="Captain">Captain</option>
+                        <option value="Major">Major</option>
+                        <option value="Staff Sergeant">Staff Sergeant</option>
+                        <option value="Warrant Officer">Warrant Officer</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Service No *:</label>
+                      <input
+                        type="text"
+                        value={regServiceNo}
+                        onChange={(e) => setRegServiceNo(e.target.value)}
+                        placeholder="e.g. NA/8924/ARMY"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Phone Number *:</label>
+                    <input
+                      type="text"
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      placeholder="+234 803 000 0000"
+                      className="form-control"
+                      required
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Email Address *:</label>
+                    <input
+                      type="email"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="name@gmail.com"
+                      className="form-control"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* ========================================================= */}
+                {/* 400 FLATS DROPDOWN LIST (ORGANIZED BY LANES 1 TO 8) */}
+                {/* ========================================================= */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Building2 size={14} color="var(--army-green-800)" />
+                    Assigned Flat Number * (100 Houses across 8 Lanes):
+                  </label>
+                  <select
+                    value={regFlatCode}
+                    onChange={(e) => setRegFlatCode(e.target.value)}
+                    className="form-select"
+                    required
+                  >
+                    {lanes.map((laneNum) => {
+                      const laneFlats = flats.filter((f) => f.laneNumber === laneNum);
+                      return (
+                        <optgroup
+                          key={laneNum}
+                          label={`📍 Lane ${laneNum} (${laneFlats.length} Flats: L${laneNum}H1A to L${laneNum}H${laneFlats.length / 4}D)`}
+                        >
+                          {laneFlats.map((flat) => (
+                            <option key={flat.id || flat.flatCode} value={flat.flatCode}>
+                              Flat {flat.flatCode} — Lane {flat.laneNumber}, House {flat.houseNumber} (Flat {flat.flatPosition}) • {flat.apartmentType}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Create Password *:</label>
+                  <input
+                    type="password"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="Create a strong password..."
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#15803D', padding: '0.65rem', fontWeight: 800, gap: '0.4rem', marginTop: '0.5rem' }}
+                >
+                  <UserCheck size={16} /> Complete Registration & Access Portal
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        {/* Back Link */}
+        <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
           <button
-            type="submit"
+            type="button"
+            onClick={onBackToLanding}
             style={{
-              marginTop: '0.5rem',
-              padding: '0.85rem',
-              borderRadius: '6px',
-              backgroundColor: mode === 'login' ? '#15803D' : '#991B1B',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              fontSize: '0.95rem',
+              background: 'none',
               border: 'none',
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '0.82rem',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              textDecoration: 'underline',
             }}
           >
-            {mode === 'login' ? (
-              <>
-                <Lock size={16} /> Sign In & Launch Dashboard <ArrowRight size={16} />
-              </>
-            ) : (
-              <>
-                <Sparkles size={16} /> Complete Registration & Onboard <ArrowRight size={16} />
-              </>
-            )}
+            ← Back to Public Landing Page
           </button>
-        </form>
-
-        {/* Quick 1-Click Access */}
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Instant 1-Click Persona Access
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <button
-              onClick={() => handleQuickDemoAccess('phdl_admin')}
-              style={{
-                padding: '0.5rem 0.75rem',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(153, 27, 27, 0.2)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                color: '#FCA5A5',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <span>🛡️ Sign in as <strong>Col. Farouk Danjuma (HQ SuperAdmin)</strong></span>
-              <span style={{ fontSize: '0.68rem', color: '#F87171' }}>Access →</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickDemoAccess('soldier')}
-              style={{
-                padding: '0.5rem 0.75rem',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(21, 128, 61, 0.2)',
-                border: '1px solid rgba(34, 197, 94, 0.4)',
-                color: '#86EFAC',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <span>🪖 Sign in as <strong>Staff Sgt. Adamu (Soldier Landlord)</strong></span>
-              <span style={{ fontSize: '0.68rem', color: '#4ADE80' }}>Access →</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickDemoAccess('tenant')}
-              style={{
-                padding: '0.5rem 0.75rem',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(217, 119, 6, 0.2)',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                color: '#FDE68A',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <span>🏠 Sign in as <strong>Emeka Okon (Resident Tenant)</strong></span>
-              <span style={{ fontSize: '0.68rem', color: '#FBBF24' }}>Access →</span>
-            </button>
-          </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default AuthPage;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePhdlStore } from '../../data/storage';
-import { IDCard } from '../../types';
+import { QrCode } from '../../types';
 import { QrCode, Search, ShieldCheck, ShieldAlert, CheckCircle, XCircle, AlertTriangle, UserCheck } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import { IDCardBadge } from './IDCardBadge';
@@ -9,7 +9,7 @@ export const GateVerificationScanner: React.FC = () => {
   const store = usePhdlStore();
   const idCards = store.getIDCards();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCard, setSelectedCard] = useState<IDCard | null>(null);
+  const [selectedCard, setSelectedCard] = useState<QrCode | null>(null);
   const [scanStatus, setScanStatus] = useState<'idle' | 'valid' | 'expired' | 'invalid'>('idle');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ export const GateVerificationScanner: React.FC = () => {
     }
   };
 
-  const handleSimulateQuickScan = (card: IDCard) => {
+  const handleSimulateQuickScan = (card: QrCode) => {
     setSelectedCard(card);
     setSearchQuery(card.cardNumber);
     const isExp = new Date(card.expiryDate || '2026-12-31') < new Date('2026-08-14');

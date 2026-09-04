@@ -7,7 +7,7 @@ import {
   Building2,
   Users,
   CreditCard,
-  IdCard,
+  QrCode,
   Settings,
   Shield,
   FileText,
@@ -17,28 +17,27 @@ import {
   Megaphone,
   Wrench,
   LogOut,
-  X,
+  Sparkles,
 } from 'lucide-react';
 
 import { Role } from '../../types';
 
 export type ActivePage =
   | 'admin_dashboard'
+  | 'admin_allocations'
   | 'soldier_onboarding'
-  | 'admin_soldiers'
   | 'admin_tenants'
-  | 'admin_flats'
-  | 'admin_billing'
-  | 'admin_id_cards'
   | 'admin_admins'
-  | 'admin_settings'
+  | 'admin_flats'
   | 'admin_hierarchy'
-  | 'admin_verification'
+  | 'admin_billing'
   | 'billing_mgmt'
-  | 'gate_scanner'
+  | 'admin_id_cards'
   | 'notifications_scheduler'
   | 'maintenance'
+  | 'admin_settings'
   | 'soldier_dashboard'
+  | 'soldier_allocations'
   | 'soldier_properties'
   | 'soldier_tenants'
   | 'soldier_billing'
@@ -50,8 +49,6 @@ export type ActivePage =
   | 'tenant_dependents'
   | 'tenant_id_card'
   | 'tenant_settings'
-  | 'system_settings'
-  | 'user_profile'
   | (string & {});
 
 export interface SidebarProps {
@@ -63,7 +60,7 @@ export interface SidebarProps {
   onLogout?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, currentRole, isOpen, onClose, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, currentRole, onLogout }) => {
   const store = usePhdlStore();
   const effectiveRole = currentRole || store.getActiveRole();
   const currentEstateId = store.getActiveEstateId();
@@ -75,14 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
       <button
         key={page}
         type="button"
-        onClick={() => {
-          if (typeof onNavigate === 'function') {
-            onNavigate(page);
-          }
-          if (onClose) {
-            onClose();
-          }
-        }}
+        onClick={() => onNavigate(page)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -92,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
           borderRadius: '6px',
           border: 'none',
           backgroundColor: isActive ? 'var(--army-green-800, #1B4D21)' : 'transparent',
-          color: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.75)',
+          color: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.78)',
           fontWeight: isActive ? 700 : 500,
           fontSize: '0.85rem',
           textAlign: 'left',
@@ -124,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
 
   return (
     <aside
-      className={`sidebar ${isOpen ? 'open' : ''}`}
+      className="sidebar"
       style={{
         width: '260px',
         minWidth: '260px',
@@ -139,96 +129,61 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
         overflow: 'hidden',
       }}
     >
-      {/* 1. BRAND HEADER */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '1.15rem 1rem',
+          gap: '0.75rem',
+          padding: '1.25rem 1rem',
           borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           backgroundColor: '#071A0B',
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
-          <PhdlLogo size={36} />
-          <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#FFFFFF', letterSpacing: '0.03em' }}>
-              PHDL Estates
-            </div>
-            <div style={{ fontSize: '0.68rem', color: '#FBBF24', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              RC 676563 • {estate?.name || 'Unity Estate'}
-            </div>
+        <PhdlLogo size={38} />
+        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+          <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#FFFFFF', letterSpacing: '0.04em' }}>
+            PHDL HOUSING
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#FBBF24', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            RC 676563 • {estate?.name || 'Unity Estate'}
           </div>
         </div>
-
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="sidebar-close-btn"
-            aria-label="Close sidebar"
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '6px',
-              color: '#FFFFFF',
-              padding: '0.35rem',
-              cursor: 'pointer',
-              display: 'none',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <X size={18} />
-          </button>
-        )}
       </div>
 
-      {/* 2. SCROLLABLE NAVIGATION LIST */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '0.75rem 0.65rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.1rem',
-        }}
-      >
-        {/* SUPERADMIN */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 0.65rem', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
         {effectiveRole === 'phdl_admin' && (
           <>
             {sectionHeader('SUPERADMIN HQ')}
             {navItem('admin_dashboard', 'HQ Overview', <LayoutDashboard size={18} />)}
+            {navItem('admin_allocations', 'Apartment Allocations', <Sparkles size={18} />)}
             {navItem('soldier_onboarding', 'Soldier Onboarding', <UserPlus size={18} />)}
             {navItem('admin_tenants', 'Tenant Residents (Modify)', <Users size={18} />)}
             {navItem('admin_admins', 'Admin User Privileges', <UserCheck size={18} />)}
             {navItem('admin_flats', 'Estate Flats', <Building size={18} />)}
-            {navItem('admin_hierarchy', 'Estate Hierarchy (404 Flats)', <Building2 size={18} />)}
+            {navItem('admin_hierarchy', 'Estate Hierarchy (400 Flats)', <Building2 size={18} />)}
             {navItem('admin_billing', 'Tariffs & Levies', <CreditCard size={18} />)}
             {navItem('billing_mgmt', 'Billing & Invoices', <Receipt size={18} />)}
-            {navItem('admin_id_cards', 'Digital Gate Passes', <IdCard size={18} />)}
+            {navItem('admin_id_cards', 'Digital Gate Passes', <QrCode size={18} />)}
             {navItem('notifications_scheduler', 'Broadcast Announcements', <Megaphone size={18} />)}
             {navItem('maintenance', 'Maintenance Requests', <Wrench size={18} />)}
             {navItem('admin_settings', 'System Settings', <Settings size={18} />)}
           </>
         )}
 
-        {/* SOLDIER LANDLORD */}
         {effectiveRole === 'soldier' && (
           <>
             {sectionHeader('SOLDIER LANDLORD')}
             {navItem('soldier_dashboard', 'Overview', <LayoutDashboard size={18} />)}
+            {navItem('soldier_allocations', 'My Allocation & Deed Letter', <Sparkles size={18} />)}
             {navItem('soldier_properties', 'My Allocated Flats', <Building size={18} />)}
             {navItem('soldier_tenants', 'My Tenants', <Users size={18} />)}
             {navItem('soldier_billing', 'Rent & Revenue', <CreditCard size={18} />)}
-            {navItem('soldier_id_card', 'Armed Forces Gate Pass', <IdCard size={18} />)}
+            {navItem('soldier_id_card', 'Armed Forces Gate Pass', <QrCode size={18} />)}
             {navItem('soldier_settings', 'System & Account Settings', <Settings size={18} />)}
           </>
         )}
 
-        {/* RESIDENT TENANT */}
         {effectiveRole === 'tenant' && (
           <>
             {sectionHeader('RESIDENT TENANT')}
@@ -236,21 +191,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
             {navItem('tenant_profile', 'My Tenancy Agreement', <FileText size={18} />)}
             {navItem('tenant_billing', 'Pay Levies (₦10k/mo)', <CreditCard size={18} />)}
             {navItem('tenant_dependents', 'Household Dependents', <Users size={18} />)}
-            {navItem('tenant_id_card', 'Smart ID Gate Pass', <IdCard size={18} />)}
+            {navItem('tenant_id_card', 'Smart ID Gate Pass', <QrCode size={18} />)}
             {navItem('tenant_settings', 'System & Account Settings', <Settings size={18} />)}
           </>
         )}
       </div>
 
-      {/* 3. FOOTER SIGN OUT BUTTON */}
       {onLogout && (
         <div style={{ padding: '0.5rem 0.65rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <button
             type="button"
-            onClick={() => {
-              if (onClose) onClose();
-              onLogout();
-            }}
+            onClick={onLogout}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -273,7 +224,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
         </div>
       )}
 
-      {/* 4. VERSION BADGE */}
       <div
         style={{
           padding: '0.75rem 1rem',
@@ -287,8 +237,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, curren
           flexShrink: 0,
         }}
       >
-        <span>Armed Forces Platform</span>
-        <span style={{ color: '#FBBF24', fontWeight: 800 }}>v2.4</span>
+        <span>Armed Forces Scheme</span>
+        <span style={{ color: '#FBBF24', fontWeight: 800 }}>v2.5</span>
       </div>
     </aside>
   );

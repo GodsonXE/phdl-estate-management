@@ -1,671 +1,632 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePhdlStore } from '../../data/storage';
 import {
-  MaintenanceRequest,
-  MaintenanceCategory,
-  MaintenanceSeverity,
-  MaintenanceRouting,
-  MaintenanceStatus,
-} from '../../types';
-import {
   Wrench,
-  PlusCircle,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Filter,
-  Search,
-  Zap,
-  Shield,
-  Droplets,
-  HardHat,
-  Eye,
-  X,
+  MessageSquare,
+  Send,
   CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Plus,
+  Search,
+  Filter,
+  User,
+  Shield,
+  Phone,
+  Building,
+  Lock,
+  RotateCcw,
+  Printer,
+  ChevronRight,
 } from 'lucide-react';
-import {
-  formatDate,
-  formatDateTime,
-  formatNaira,
-  getStatusBadgeClass,
-  getStatusLabel,
-} from '../../utils/formatters';
-import { exportGenericToCSV } from '../../utils/exportUtils';
+
+export interface ChatMessage {
+  id: string;
+  senderName: string;
+  senderRole: 'SuperAdmin HQ' | 'Facility Engineer' | 'Soldier Landlord' | 'Resident Tenant';
+  message: string;
+  timestamp: string;
+  isAdmin: boolean;
+}
+
+export interface MaintenanceTicket {
+  id: string;
+  flatCode: string;
+  laneNumber: number;
+  requesterName: string;
+  requesterRole: 'Soldier Owner' | 'Civilian Tenant';
+  requesterPhone: string;
+  category: 'Plumbing & Borehole' | 'Electrical & Transformer' | 'Solar Streetlighting' | 'Drainage & Sanitation' | 'Structural / Roof';
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  status: 'open' | 'in_progress' | 'resolved';
+  reportedDate: string;
+  resolvedDate?: string;
+  messages: ChatMessage[];
+}
+
+const DEFAULT_TICKETS: MaintenanceTicket[] = [
+  {
+    id: 'MNT-2026-001',
+    flatCode: 'L1H4B',
+    laneNumber: 1,
+    requesterName: 'Staff Sgt. Adamu Mohammed',
+    requesterRole: 'Soldier Owner',
+    requesterPhone: '+234 803 111 2233',
+    category: 'Plumbing & Borehole',
+    title: 'Main water borehole booster pump line pressure drop',
+    description: 'Booster pump 2 pressure is insufficient for upper floor flats in House 4. Low water pressure since yesterday morning.',
+    priority: 'high',
+    status: 'in_progress',
+    reportedDate: '2026-08-30 08:15',
+    messages: [
+      {
+        id: 'msg-1',
+        senderName: 'Staff Sgt. Adamu Mohammed',
+        senderRole: 'Soldier Owner',
+        message: 'Good morning HQ. Water pressure on the top floor of House 4 has dropped drastically. Please send a plumber to inspect booster pump 2.',
+        timestamp: '2026-08-30 08:15',
+        isAdmin: false,
+      },
+      {
+        id: 'msg-2',
+        senderName: 'Engr. Kabiru Musa',
+        senderRole: 'Facility Engineer',
+        message: 'Acknowledged, Sergeant. We dispatched the mechanical team to inspect the check valve and pressure regulator.',
+        timestamp: '2026-08-30 09:40',
+        isAdmin: true,
+      },
+      {
+        id: 'msg-3',
+        senderName: 'SuperAdmin HQ Command',
+        senderRole: 'SuperAdmin HQ',
+        message: 'Replacement 2.5HP submersible check valve acquired. Technicians are currently on site completing the repair.',
+        timestamp: '2026-08-30 11:20',
+        isAdmin: true,
+      },
+    ],
+  },
+  {
+    id: 'MNT-2026-002',
+    flatCode: 'L3H2A',
+    laneNumber: 3,
+    requesterName: 'Engr. Emeka Gabriel Okon',
+    requesterRole: 'Civilian Tenant',
+    requesterPhone: '+234 803 456 7890',
+    category: 'Solar Streetlighting',
+    title: 'Lane 3 Pole #4 solar inverter and battery replacement',
+    description: 'Streetlight pole 4 fails to illuminate after 20:00hrs, causing a dark zone near the Lane 3 corner turn.',
+    priority: 'medium',
+    status: 'resolved',
+    reportedDate: '2026-08-25 19:30',
+    resolvedDate: '2026-08-27 14:00',
+    messages: [
+      {
+        id: 'msg-201',
+        senderName: 'Engr. Emeka Gabriel Okon',
+        senderRole: 'Resident Tenant',
+        message: 'Hello Admin, streetlight pole 4 at the Lane 3 junction is completely dark at night. Potential security blindspot.',
+        timestamp: '2026-08-25 19:30',
+        isAdmin: false,
+      },
+      {
+        id: 'msg-202',
+        senderName: 'Facility Operations',
+        senderRole: 'Facility Engineer',
+        message: 'Inspection completed. Solar lithium cell was faulty. Replaced with new 150Ah solar battery and 60W LED luminaire.',
+        timestamp: '2026-08-27 13:45',
+        isAdmin: true,
+      },
+      {
+        id: 'msg-203',
+        senderName: 'Engr. Emeka Gabriel Okon',
+        senderRole: 'Resident Tenant',
+        message: 'Confirmed working brightly tonight! Thank you for the swift response.',
+        timestamp: '2026-08-27 20:10',
+        isAdmin: false,
+      },
+    ],
+  },
+  {
+    id: 'MNT-2026-003',
+    flatCode: 'L5H1C',
+    laneNumber: 5,
+    requesterName: 'Dr. (Mrs) Fatima Abubakar',
+    requesterRole: 'Civilian Tenant',
+    requesterPhone: '+234 802 112 3344',
+    category: 'Drainage & Sanitation',
+    title: 'Perimeter concrete drainage desilting at Lane 5 entrance',
+    description: 'Heavy rainfall yesterday caused sediment accumulation in the roadside storm drain. Needs desilting.',
+    priority: 'low',
+    status: 'open',
+    reportedDate: '2026-09-01 10:00',
+    messages: [
+      {
+        id: 'msg-301',
+        senderName: 'Dr. Fatima Abubakar',
+        senderRole: 'Resident Tenant',
+        message: 'Good day. Requesting sanitation crew to desilt the storm drain in front of House 1 Lane 5 to prevent waterlogging.',
+        timestamp: '2026-09-01 10:00',
+        isAdmin: false,
+      },
+    ],
+  },
+];
 
 export const MaintenancePage: React.FC = () => {
   const store = usePhdlStore();
-  const currentRole = store.getActiveRole();
-  const currentEstateId = store.getActiveEstateId();
-  const currentEstate = store.getEstateById(currentEstateId);
-  const flats = store.getFlats(currentEstateId);
-  const activeSoldier = store.getSoldierById(store.getActiveSoldierId());
-  const activeTenant = store.getTenantById(store.getActiveTenantId());
-  const allTickets = store.getMaintenanceRequests(currentEstateId);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
-  const [selectedRouting, setSelectedRouting] = useState<string>('all');
-  const [selectedTicket, setSelectedTicket] = useState<MaintenanceRequest | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
-
-  // New Ticket Form
-  const [ticketCategory, setTicketCategory] = useState<MaintenanceCategory>('plumbing');
-  const [ticketTitle, setTicketTitle] = useState('');
-  const [ticketDesc, setTicketDesc] = useState('');
-  const [ticketSeverity, setTicketSeverity] = useState<MaintenanceSeverity>('medium');
-  const [ticketFlatId, setTicketFlatId] = useState<string>(
-    currentRole === 'tenant'
-      ? activeTenant?.flatId || 'flat-2'
-      : currentRole === 'soldier'
-      ? activeSoldier?.ownedFlatIds[0] || 'flat-1'
-      : flats[0]?.id || 'flat-1'
-  );
-
-  // Technician resolution state in modal
-  const [technicianName, setTechnicianName] = useState('');
-  const [technicianPhone, setTechnicianPhone] = useState('');
-  const [costEstimate, setCostEstimate] = useState<number>(10000);
-  const [resolutionNotes, setResolutionNotes] = useState('');
-
-  // Role scoping
-  const visibleTickets = allTickets.filter((ticket) => {
-    if (currentRole === 'tenant' && activeTenant) {
-      return ticket.flatId === activeTenant.flatId || ticket.raisedById === activeTenant.id;
+  const [tickets, setTickets] = useState<MaintenanceTicket[]>(() => {
+    const saved = localStorage.getItem('phdl_maintenance_tickets_v3');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    if (currentRole === 'soldier' && activeSoldier) {
-      return (
-        activeSoldier.ownedFlatIds.includes(ticket.flatId) ||
-        ticket.routingTarget === 'landlord' ||
-        ticket.raisedById === activeSoldier.id
-      );
-    }
-    return true; // PHDL Admin sees all
+    return DEFAULT_TICKETS;
   });
 
-  const filteredTickets = visibleTickets.filter((ticket) => {
-    if (selectedCategory !== 'all' && ticket.category !== selectedCategory) return false;
-    if (selectedStatus !== 'all' && ticket.status !== selectedStatus) return false;
-    if (selectedSeverity !== 'all' && ticket.severity !== selectedSeverity) return false;
-    if (selectedRouting !== 'all' && ticket.routingTarget !== selectedRouting) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      return (
-        (ticket.ticketNumber || ticket.id).toLowerCase().includes(q) ||
-        ticket.title.toLowerCase().includes(q) ||
-        (ticket.flatCode || '').toLowerCase().includes(q) ||
-        (ticket.raisedByName || '').toLowerCase().includes(q)
-      );
+  const [selectedTicketId, setSelectedTicketId] = useState<string>(tickets[0]?.id || 'MNT-2026-001');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [replyText, setReplyText] = useState('');
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // New Ticket Form State
+  const [newFlat, setNewFlat] = useState('L1H1A');
+  const [newRequester, setNewRequester] = useState('Staff Sgt. Adamu Mohammed');
+  const [newPhone, setNewPhone] = useState('+234 803 111 2233');
+  const [newRole, setNewRole] = useState<'Soldier Owner' | 'Civilian Tenant'>('Soldier Owner');
+  const [newCategory, setNewCategory] = useState<MaintenanceTicket['category']>('Plumbing & Borehole');
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newPriority, setNewPriority] = useState<MaintenanceTicket['priority']>('medium');
+
+  useEffect(() => {
+    localStorage.setItem('phdl_maintenance_tickets_v3', JSON.stringify(tickets));
+  }, [tickets]);
+
+  const selectedTicket = tickets.find((t) => t.id === selectedTicketId) || tickets[0];
+
+  // Send Feedback Reply in Thread
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim() || !selectedTicket) return;
+
+    const newMsg: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      senderName: 'SuperAdmin HQ Command',
+      senderRole: 'SuperAdmin HQ',
+      message: replyText.trim(),
+      timestamp: new Date().toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      isAdmin: true,
+    };
+
+    const updated = tickets.map((t) => {
+      if (t.id === selectedTicket.id) {
+        return {
+          ...t,
+          status: t.status === 'open' ? ('in_progress' as const) : t.status,
+          messages: [...t.messages, newMsg],
+        };
+      }
+      return t;
+    });
+
+    setTickets(updated);
+    setReplyText('');
+    setNotice(`Feedback sent to ${selectedTicket.requesterName} (Flat ${selectedTicket.flatCode})!`);
+    setTimeout(() => setNotice(null), 3500);
+  };
+
+  // Close / Resolve Ticket
+  const handleToggleResolveTicket = (ticketId: string, toResolve: boolean) => {
+    const updated = tickets.map((t) => {
+      if (t.id === ticketId) {
+        const closingMsg: ChatMessage = {
+          id: `msg-${Date.now()}`,
+          senderName: 'SuperAdmin HQ Command',
+          senderRole: 'SuperAdmin HQ',
+          message: toResolve
+            ? '✅ [TICKET CLOSED]: Facility engineers have completed this work order and verified operation with the resident.'
+            : '🔄 [TICKET REOPENED]: Work order has been reactivated for follow-up inspection.',
+          timestamp: new Date().toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          isAdmin: true,
+        };
+
+        return {
+          ...t,
+          status: (toResolve ? 'resolved' : 'in_progress') as MaintenanceTicket['status'],
+          resolvedDate: toResolve ? new Date().toISOString().split('T')[0] : undefined,
+          messages: [...t.messages, closingMsg],
+        };
+      }
+      return t;
+    });
+
+    setTickets(updated);
+    setNotice(toResolve ? `Ticket ${ticketId} has been resolved & closed!` : `Ticket ${ticketId} reopened.`);
+    setTimeout(() => setNotice(null), 3500);
+  };
+
+  // Create New Ticket
+  const handleCreateTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    const laneNum = Number(newFlat.match(/\d+/)?.[0]) || 1;
+    const newId = `MNT-2026-${(tickets.length + 1).toString().padStart(3, '0')}`;
+
+    const newTicket: MaintenanceTicket = {
+      id: newId,
+      flatCode: newFlat.toUpperCase(),
+      laneNumber: laneNum,
+      requesterName: newRequester,
+      requesterRole: newRole,
+      requesterPhone: newPhone,
+      category: newCategory,
+      title: newTitle,
+      description: newDesc,
+      priority: newPriority,
+      status: 'open',
+      reportedDate: new Date().toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      messages: [
+        {
+          id: `msg-${Date.now()}`,
+          senderName: newRequester,
+          senderRole: newRole === 'Soldier Owner' ? 'Soldier Landlord' : 'Resident Tenant',
+          message: newDesc,
+          timestamp: new Date().toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          isAdmin: false,
+        },
+      ],
+    };
+
+    setTickets([newTicket, ...tickets]);
+    setSelectedTicketId(newId);
+    setIsCreatingNew(false);
+    setNewTitle('');
+    setNewDesc('');
+    setNotice(`New maintenance ticket ${newId} logged successfully!`);
+    setTimeout(() => setNotice(null), 4000);
+  };
+
+  const filteredTickets = tickets.filter((t) => {
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const mFlat = t.flatCode.toLowerCase().includes(q);
+      const mName = t.requesterName.toLowerCase().includes(q);
+      const mTitle = t.title.toLowerCase().includes(q);
+      const mId = t.id.toLowerCase().includes(q);
+      if (!mFlat && !mName && !mTitle && !mId) return false;
     }
+    if (statusFilter !== 'all' && t.status !== statusFilter) return false;
     return true;
   });
 
-  const handleExportCSV = () => {
-    const headers = [
-      'Ticket Number',
-      'Flat Code',
-      'Category',
-      'Title',
-      'Severity',
-      'Routing Target',
-      'Raised By Role',
-      'Raised By Name',
-      'Status',
-      'Created Date',
-    ];
-
-    const rows = filteredTickets.map((t) => [
-      t.ticketNumber || t.id,
-      t.flatCode || '',
-      t.category.replace(/_/g, ' ').toUpperCase(),
-      t.title,
-      (t.severity || 'low').toUpperCase(),
-      t.routingTarget === 'phdl_estate_manager' ? 'PHDL Management' : 'Landlord',
-      (t.raisedByRole || 'resident').toUpperCase(),
-      t.raisedByName || 'Resident',
-      getStatusLabel(t.status),
-      formatDate(t.createdAt),
-    ]);
-
-    exportGenericToCSV(headers, rows, `PHDL_Maintenance_Tickets_${Date.now()}.csv`);
-    setNoticeMessage(`Exported ${rows.length} tickets to CSV.`);
-    setTimeout(() => setNoticeMessage(null), 3000);
-  };
-
-  const handleCreateTicket = (e: React.FormEvent) => {
-    e.preventDefault();
-    const flat = flats.find((f) => f.id === ticketFlatId) || flats[0];
-
-    // Smart Routing Logic:
-    // Structural/central grid/drainage/security -> PHDL Estate Manager
-    // Plumbing/internal wiring/noise -> Soldier Landlord
-    let routing: MaintenanceRouting = 'landlord';
-    if (
-      ticketCategory === 'structural_roofing' ||
-      ticketCategory === 'civil_drainage' ||
-      ticketCategory === 'security' ||
-      ticketCategory === 'water_supply' ||
-      ticketSeverity === 'emergency'
-    ) {
-      routing = 'phdl_estate_manager';
-    }
-
-    const raisedByName =
-      currentRole === 'soldier'
-        ? `${activeSoldier?.rank} ${activeSoldier?.fullName}`
-        : currentRole === 'tenant'
-        ? activeTenant?.fullName || 'Resident Tenant'
-        : 'Estate Inspector';
-
-    const raisedByPhone =
-      currentRole === 'soldier'
-        ? activeSoldier?.phone || '+234 800 000 0000'
-        : activeTenant?.phone || '+234 800 000 0000';
-
-    const tNum = `MNT-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
-
-    const newReq: MaintenanceRequest = {
-      id: `mnt-${Date.now()}`,
-      ticketNumber: tNum,
-      estateId: currentEstateId,
-      flatId: flat.id,
-      flatCode: flat.fullFlatCode,
-      laneId: flat.laneId,
-      requesterId: currentRole === 'soldier' ? activeSoldier?.id || 'soldier-1' : activeTenant?.id || 'tenant-1',
-      requesterRole: currentRole,
-      requesterName: raisedByName,
-      raisedByRole: currentRole,
-      raisedById: currentRole === 'soldier' ? activeSoldier?.id || 'soldier-1' : activeTenant?.id || 'tenant-1',
-      raisedByName,
-      raisedByPhone,
-      category: ticketCategory,
-      title: ticketTitle,
-      description: ticketDesc,
-      priority: (ticketSeverity === 'emergency' ? 'emergency' : ticketSeverity === 'high' ? 'high' : ticketSeverity === 'medium' ? 'medium' : 'low') as any,
-      severity: ticketSeverity,
-      routingTarget: routing,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    store.createMaintenanceRequest(newReq);
-    setShowCreateModal(false);
-    setTicketTitle('');
-    setTicketDesc('');
-    setNoticeMessage(`Ticket #${tNum} created and routed to ${routing === 'phdl_estate_manager' ? 'PHDL Estate Management' : 'Soldier Landlord'}.`);
-    setTimeout(() => setNoticeMessage(null), 4000);
-  };
-
-  const handleUpdateTicketStatus = (ticket: MaintenanceRequest, newStatus: MaintenanceStatus) => {
-    const updated: MaintenanceRequest = {
-      ...ticket,
-      status: newStatus,
-      assignedTechnicianName: technicianName || ticket.assignedTechnicianName,
-      assignedTechnicianPhone: technicianPhone || ticket.assignedTechnicianPhone,
-      costEstimate: costEstimate || ticket.costEstimate,
-      resolutionNotes: resolutionNotes || ticket.resolutionNotes,
-      updatedAt: new Date().toISOString(),
-      resolvedAt: newStatus === 'resolved' ? new Date().toISOString() : undefined,
-    };
-
-    store.updateMaintenanceRequest(updated);
-    setSelectedTicket(updated);
-    setNoticeMessage(`Ticket #${ticket.ticketNumber} marked as ${getStatusLabel(newStatus)}.`);
-    setTimeout(() => setNoticeMessage(null), 3500);
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Title & Banner */}
+      {/* 1. Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-            <span className="badge badge-military">WORKS & LOGISTICS</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-subtle)' }}>
-              {currentEstate?.name}
-            </span>
+          <div className="section-overline">
+            <span>ESTATE INFRASTRUCTURE SLA</span> • <span>REAL-TIME RESIDENT FEEDBACK</span>
           </div>
-          <h2>Maintenance Requests & Dispute Resolution</h2>
-          <p style={{ fontSize: '0.875rem' }}>
-            Intelligent ticket routing: Internal flat issues route to Landlord; structural and civil works route directly to PHDL.
+          <h1>Maintenance & Infrastructure Requests</h1>
+          <p>
+            Track work orders, dispatch facility engineering crews, and communicate directly with landlords/tenants through live resolution chat threads.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
-            onClick={handleExportCSV}
-            className="btn btn-outline"
-            style={{ gap: '0.4rem', borderColor: '#0284C7', color: '#0369A1' }}
+            type="button"
+            onClick={() => setIsCreatingNew(true)}
+            className="btn btn-primary btn-sm"
+            style={{ backgroundColor: '#15803D', gap: '0.4rem', fontWeight: 800 }}
           >
-            <Wrench size={16} />
-            Export Tickets CSV ({filteredTickets.length})
+            <Plus size={14} /> Log New Request
           </button>
-          <button onClick={() => setShowCreateModal(true)} className="btn btn-primary" style={{ gap: '0.4rem' }}>
-            <PlusCircle size={16} />
-            Lodge Maintenance Issue
+          <button onClick={() => window.print()} className="btn btn-outline btn-sm" style={{ gap: '0.4rem' }}>
+            <Printer size={14} /> Print SLA Report
           </button>
         </div>
       </div>
 
-      {noticeMessage && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CheckCircle2 size={16} />
-          {noticeMessage}
+      {notice && (
+        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-text)', borderRadius: '6px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <CheckCircle2 size={16} /> {notice}
         </div>
       )}
 
-      {/* Metrics */}
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div>
-            <div className="stat-label">Active Tickets</div>
-            <div className="stat-value" style={{ color: '#B45309' }}>
-              {visibleTickets.filter((t) => t.status !== 'resolved' && t.status !== 'closed').length}
-            </div>
-            <div className="stat-subtext">Open / In Progress</div>
-          </div>
-          <div className="stat-icon-wrapper" style={{ backgroundColor: 'var(--status-warning-bg)', color: '#B45309' }}>
-            <Clock size={22} />
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div>
-            <div className="stat-label">Resolved Issues</div>
-            <div className="stat-value" style={{ color: '#15803D' }}>
-              {visibleTickets.filter((t) => t.status === 'resolved' || t.status === 'closed').length}
-            </div>
-            <div className="stat-subtext">Verified completion</div>
-          </div>
-          <div className="stat-icon-wrapper" style={{ backgroundColor: 'var(--status-success-bg)', color: '#15803D' }}>
-            <CheckCircle size={22} />
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div>
-            <div className="stat-label">Critical / High Severity</div>
-            <div className="stat-value" style={{ color: '#DC2626' }}>
-              {visibleTickets.filter((t) => (t.severity === 'high' || t.severity === 'emergency') && t.status !== 'resolved').length}
-            </div>
-            <div className="stat-subtext">Priority dispatch queue</div>
-          </div>
-          <div className="stat-icon-wrapper" style={{ backgroundColor: 'var(--status-danger-bg)', color: '#DC2626' }}>
-            <AlertTriangle size={22} />
-          </div>
-        </div>
-      </div>
-
-      {/* Filter & Search */}
-      <div className="card" style={{ padding: '1.25rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+      {/* 2. Search & Filter Bar */}
+      <div className="card" style={{ padding: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Search Tickets or Units</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. MNT-2026, L1H1A, pipe, roof..."
-                className="form-control"
-                style={{ paddingLeft: '2rem' }}
-              />
-              <Search size={15} style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
-            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by Flat Code, Resident Name, or Issue summary..."
+              className="form-control"
+            />
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Filter by Category</label>
-            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="form-select">
-              <option value="all">All Categories</option>
-              <option value="plumbing">Plumbing & Water Pipes</option>
-              <option value="electrical_power">Electrical & Breakers</option>
-              <option value="structural_roofing">Structural & Roofing</option>
-              <option value="civil_drainage">Civil & Drainage</option>
-              <option value="security">Security & Access</option>
-              <option value="noise_dispute">Noise / Neighbor Dispute</option>
-            </select>
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Filter by Severity</label>
-            <select value={selectedSeverity} onChange={(e) => setSelectedSeverity(e.target.value)} className="form-select">
-              <option value="all">All Severities</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="emergency">Emergency</option>
-            </select>
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Filter by Routing</label>
-            <select value={selectedRouting} onChange={(e) => setSelectedRouting(e.target.value)} className="form-select">
-              <option value="all">All Targets</option>
-              <option value="landlord">Soldier Landlord</option>
-              <option value="phdl_estate_manager">PHDL Management</option>
-            </select>
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Filter by Status</label>
-            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="form-select">
-              <option value="all">All Statuses</option>
-              <option value="submitted">Submitted</option>
-              <option value="assigned">Assigned</option>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="form-select"
+            >
+              <option value="all">-- All Statuses ({tickets.length}) --</option>
+              <option value="open">Open Requests</option>
               <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
+              <option value="resolved">Resolved & Closed</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Tickets List */}
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">
-            <Wrench size={18} />
-            Maintenance & Complaints Registry ({filteredTickets.length})
+      {/* 3. Main Split Screen: Tickets List & Live Chat Thread */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1.2fr) minmax(400px, 1.8fr)', gap: '1.5rem', alignItems: 'start' }}>
+        {/* LEFT COLUMN: TICKET QUEUE */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-light)', backgroundColor: '#F8FAFC', fontWeight: 800, fontSize: '0.9rem', color: 'var(--army-green-950)' }}>
+            Maintenance Queue ({filteredTickets.length})
+          </div>
+
+          <div style={{ maxHeight: '68vh', overflowY: 'auto' }}>
+            {filteredTickets.map((t) => {
+              const isSelected = selectedTicket?.id === t.id;
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => setSelectedTicketId(t.id)}
+                  style={{
+                    padding: '1rem 1.25rem',
+                    borderBottom: '1px solid var(--border-light)',
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? 'var(--army-green-50)' : '#FFFFFF',
+                    borderLeft: isSelected ? '4px solid var(--army-green-800)' : '4px solid transparent',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.78rem', color: 'var(--army-green-950)' }}>
+                        {t.id}
+                      </span>
+                      <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#1E293B' }}>
+                        • Flat {t.flatCode}
+                      </span>
+                    </div>
+
+                    <span
+                      className={`badge ${
+                        t.status === 'resolved'
+                          ? 'badge-success'
+                          : t.status === 'in_progress'
+                          ? 'badge-warning'
+                          : 'badge-danger'
+                      }`}
+                      style={{ fontSize: '0.68rem', textTransform: 'uppercase' }}
+                    >
+                      {t.status === 'resolved' ? '✓ Closed' : t.status.replace('_', ' ')}
+                    </span>
+                  </div>
+
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--army-green-950)', marginBottom: '0.35rem', lineHeight: 1.3 }}>
+                    {t.title}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    <span>{t.requesterName}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <MessageSquare size={12} /> {t.messages.length} replies
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Ticket ID</th>
-                <th>Unit / Lane</th>
-                <th>Category & Title</th>
-                <th>Severity</th>
-                <th>Routing Target</th>
-                <th>Raised By</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.map((ticket) => (
-                <tr key={ticket.id}>
-                  <td>
-                    <div style={{ fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--primary-900)' }}>
-                      {ticket.ticketNumber}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
-                      {formatDate(ticket.createdAt)}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="badge badge-neutral" style={{ fontWeight: 700 }}>
-                      {ticket.flatCode}
+        {/* RIGHT COLUMN: SELECTED TICKET DETAILS & INTERACTIVE CHAT THREAD */}
+        {selectedTicket ? (
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '68vh', overflow: 'hidden' }}>
+            {/* Ticket Header & Status Controls */}
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-light)', backgroundColor: '#F8FAFC' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.82rem', color: 'var(--army-green-800)' }}>
+                      {selectedTicket.id}
                     </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{ticket.title}</div>
-                    <div style={{ fontSize: '0.725rem', color: 'var(--text-subtle)', textTransform: 'capitalize' }}>
-                      {ticket.category.replace(/_/g, ' ')}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`badge ${getStatusBadgeClass(ticket.severity || 'low')}`}>
-                      {(ticket.severity || 'low').toUpperCase()}
+                    <span className="badge badge-military">{selectedTicket.category}</span>
+                    <span className={`badge ${selectedTicket.priority === 'high' ? 'badge-danger' : selectedTicket.priority === 'medium' ? 'badge-warning' : 'badge-success'}`}>
+                      {selectedTicket.priority.toUpperCase()} PRIORITY
                     </span>
-                  </td>
-                  <td>
-                    <span className="badge badge-military" style={{ fontSize: '0.7rem' }}>
-                      {ticket.routingTarget === 'phdl_estate_manager' ? 'PHDL Command' : 'Soldier Landlord'}
+                  </div>
+                  <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--army-green-950)', fontSize: '1.05rem' }}>
+                    {selectedTicket.title}
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    <strong>Requester:</strong> {selectedTicket.requesterName} ({selectedTicket.requesterRole}) • <strong>Flat {selectedTicket.flatCode} (Lane {selectedTicket.laneNumber})</strong> • 📞 {selectedTicket.requesterPhone}
+                  </div>
+                </div>
+
+                {/* Close / Reopen Action Button */}
+                {selectedTicket.status !== 'resolved' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleResolveTicket(selectedTicket.id, true)}
+                    className="btn btn-primary btn-sm"
+                    style={{ backgroundColor: '#15803D', gap: '0.35rem', fontWeight: 800 }}
+                  >
+                    <CheckCircle2 size={14} /> Resolve & Close Ticket
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleResolveTicket(selectedTicket.id, false)}
+                    className="btn btn-outline btn-sm"
+                    style={{ gap: '0.35rem', borderColor: '#F59E0B', color: '#B45309' }}
+                  >
+                    <RotateCcw size={14} /> Re-open Ticket
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Interactive Chat Messages Stream */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#FFFFFF' }}>
+              {selectedTicket.messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    alignSelf: msg.isAdmin ? 'flex-end' : 'flex-start',
+                    maxWidth: '82%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: msg.isAdmin ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <strong>{msg.senderName}</strong>
+                    <span style={{ fontSize: '0.68rem', backgroundColor: msg.isAdmin ? '#DCFCE7' : '#EFF6FF', color: msg.isAdmin ? '#15803D' : '#1D4ED8', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                      {msg.senderRole}
                     </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>{ticket.raisedByName}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
-                      {(ticket.raisedByRole || 'resident').toUpperCase()}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`badge ${getStatusBadgeClass(ticket.status)}`}>
-                      {getStatusLabel(ticket.status)}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => {
-                        setSelectedTicket(ticket);
-                        setTechnicianName(ticket.assignedTechnicianName || '');
-                        setTechnicianPhone(ticket.assignedTechnicianPhone || '');
-                        setCostEstimate(ticket.costEstimate || 10000);
-                        setResolutionNotes(ticket.resolutionNotes || '');
-                      }}
-                      className="btn btn-outline btn-sm"
-                      style={{ gap: '0.3rem' }}
-                    >
-                      <Eye size={13} />
-                      Manage
-                    </button>
-                  </td>
-                </tr>
+                    <span>• {msg.timestamp}</span>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: msg.isAdmin ? '10px 10px 0 10px' : '10px 10px 10px 0',
+                      backgroundColor: msg.isAdmin ? '#1B4D21' : '#F1F5F9',
+                      color: msg.isAdmin ? '#FFFFFF' : '#0F172A',
+                      fontSize: '0.85rem',
+                      lineHeight: 1.5,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    {msg.message}
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* Chat Reply Composer */}
+            {selectedTicket.status !== 'resolved' ? (
+              <form
+                onSubmit={handleSendReply}
+                style={{
+                  padding: '0.85rem 1rem',
+                  borderTop: '1px solid var(--border-light)',
+                  backgroundColor: '#F8FAFC',
+                  display: 'flex',
+                  gap: '0.5rem',
+                  alignItems: 'center',
+                }}
+              >
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder={`Send feedback or update to ${selectedTicket.requesterName}...`}
+                  className="form-control"
+                  style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+                  required
+                />
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ backgroundColor: '#1B4D21', gap: '0.4rem', padding: '0.5rem 1rem' }}
+                >
+                  <Send size={14} /> Send Feedback
+                </button>
+              </form>
+            ) : (
+              <div style={{ padding: '0.85rem', backgroundColor: '#F0FDF4', borderTop: '1px solid #BBF7D0', textAlign: 'center', fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                ✓ This maintenance ticket was marked as resolved on {selectedTicket.resolvedDate || 'recent date'}. Conversation thread is archived.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            Select a maintenance ticket from the left queue to view details and feedback thread.
+          </div>
+        )}
       </div>
 
-      {/* Ticket Details & Action Modal */}
-      {selectedTicket && (
-        <div className="modal-backdrop" onClick={() => setSelectedTicket(null)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+      {/* 4. LOG NEW MAINTENANCE REQUEST MODAL */}
+      {isCreatingNew && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 560 }}>
             <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Wrench size={18} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>
-                    Manage Ticket #{selectedTicket.ticketNumber}
-                  </h3>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-subtle)' }}>
-                    Unit {selectedTicket.flatCode} • Routed to {selectedTicket.routingTarget === 'phdl_estate_manager' ? 'PHDL Estate Management' : 'Soldier Landlord'}
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => setSelectedTicket(null)} className="btn btn-ghost btn-sm">
-                <X size={18} />
-              </button>
+              <h3 style={{ margin: 0, color: '#FFFFFF' }}>Log New Maintenance & Infrastructure Request</h3>
+              <button onClick={() => setIsCreatingNew(false)} className="btn btn-outline btn-sm">✕</button>
             </div>
-
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <strong style={{ fontSize: '1rem', color: 'var(--primary-900)' }}>{selectedTicket.title}</strong>
-                  <span className={`badge ${getStatusBadgeClass(selectedTicket.status)}`}>
-                    {getStatusLabel(selectedTicket.status)}
-                  </span>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  {selectedTicket.description}
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
-                  <span>Raised by: <strong>{selectedTicket.raisedByName}</strong> ({selectedTicket.raisedByPhone})</span>
-                  <span>Logged: <strong>{formatDateTime(selectedTicket.createdAt)}</strong></span>
-                </div>
-              </div>
-
-              {/* Technician Dispatch Form */}
-              <div style={{ border: '1px solid var(--border-light)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-900)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-                  Technician Assignment & Work Estimate
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Technician / Corps Name</label>
-                    <input
-                      type="text"
-                      value={technicianName}
-                      onChange={(e) => setTechnicianName(e.target.value)}
-                      placeholder="e.g. Engr. Bitrus (Estate Plumber)"
-                      className="form-control"
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Technician Contact Phone</label>
-                    <input
-                      type="text"
-                      value={technicianPhone}
-                      onChange={(e) => setTechnicianPhone(e.target.value)}
-                      placeholder="+234 803 000 1122"
-                      className="form-control"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginTop: '0.75rem', marginBottom: 0 }}>
-                  <label className="form-label">Resolution Notes / Parts Replaced</label>
-                  <textarea
-                    value={resolutionNotes}
-                    onChange={(e) => setResolutionNotes(e.target.value)}
-                    placeholder="Enter technician diagnosis, replaced components, or inspection signoff..."
-                    rows={3}
-                    className="form-textarea"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateTicketStatus(selectedTicket, 'in_progress')}
-                  className="btn btn-outline btn-sm"
-                >
-                  Mark In Progress
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateTicketStatus(selectedTicket, 'resolved')}
-                  className="btn btn-primary btn-sm"
-                  style={{ gap: '0.35rem' }}
-                >
-                  <CheckCircle size={14} />
-                  Mark Resolved
-                </button>
-              </div>
-
-              <button type="button" onClick={() => setSelectedTicket(null)} className="btn btn-outline">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Lodge Ticket Modal */}
-      {showCreateModal && (
-        <div className="modal-backdrop" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--primary-100)', color: 'var(--primary-800)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Wrench size={18} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>Lodge Maintenance or Complaint Ticket</h3>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-subtle)' }}>
-                    System auto-routes to Landlord or PHDL Civil Engineers
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => setShowCreateModal(false)} className="btn btn-ghost btn-sm">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTicket}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-row">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Category</label>
-                    <select
-                      value={ticketCategory}
-                      onChange={(e) => setTicketCategory(e.target.value as MaintenanceCategory)}
-                      className="form-select"
-                    >
-                      <option value="plumbing">Plumbing & Water Pipes</option>
-                      <option value="electrical_power">Electrical & AC Lines</option>
-                      <option value="structural_roofing">Roofing & Structural Walls</option>
-                      <option value="civil_drainage">Civil Works & Drainage</option>
-                      <option value="security">Security & Access Locks</option>
-                      <option value="noise_dispute">Noise or Dispute Escalation</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">Severity</label>
-                    <select
-                      value={ticketSeverity}
-                      onChange={(e) => setTicketSeverity(e.target.value as MaintenanceSeverity)}
-                      className="form-select"
-                    >
-                      <option value="low">Low - Routine</option>
-                      <option value="medium">Medium - Standard Repair</option>
-                      <option value="high">High - Urgent Action Required</option>
-                      <option value="emergency">Critical Emergency (Immediate PHDL Dispatch)</option>
-                    </select>
-                  </div>
+            <form onSubmit={handleCreateTicket} style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Flat Code:</label>
+                  <input type="text" value={newFlat} onChange={(e) => setNewFlat(e.target.value)} placeholder="e.g. L1H1A, L3H4C" className="form-control" required />
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Issue Summary / Title</label>
-                  <input
-                    type="text"
-                    value={ticketTitle}
-                    onChange={(e) => setTicketTitle(e.target.value)}
-                    placeholder="e.g. Master bathroom water pipe burst under floor tile"
-                    className="form-control"
-                    required
-                  />
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Detailed Description</label>
-                  <textarea
-                    value={ticketDesc}
-                    onChange={(e) => setTicketDesc(e.target.value)}
-                    placeholder="Provide full description of the defect, location in unit, and safety impact..."
-                    rows={4}
-                    className="form-textarea"
-                    required
-                  />
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Target Flat</label>
-                  <select
-                    value={ticketFlatId}
-                    onChange={(e) => setTicketFlatId(e.target.value)}
-                    className="form-select"
-                  >
-                    {flats.slice(0, 30).map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.fullFlatCode} ({f.floor})
-                      </option>
-                    ))}
+                  <label className="form-label">Resident Role:</label>
+                  <select value={newRole} onChange={(e) => setNewRole(e.target.value as any)} className="form-select">
+                    <option value="Soldier Owner">🪖 Soldier Owner</option>
+                    <option value="Civilian Tenant">🏠 Civilian Tenant</option>
                   </select>
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-outline">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" style={{ gap: '0.4rem' }}>
-                  <Wrench size={16} />
-                  Submit Ticket
-                </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Requester Full Name:</label>
+                  <input type="text" value={newRequester} onChange={(e) => setNewRequester(e.target.value)} className="form-control" required />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Phone Number:</label>
+                  <input type="text" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="form-control" required />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Infrastructure Category:</label>
+                  <select value={newCategory} onChange={(e) => setNewCategory(e.target.value as any)} className="form-select">
+                    <option value="Plumbing & Borehole">🚰 Plumbing & Water Borehole</option>
+                    <option value="Electrical & Transformer">⚡ Electrical Substation & Power</option>
+                    <option value="Solar Streetlighting">💡 Solar Streetlighting</option>
+                    <option value="Drainage & Sanitation">🧹 Drainage & Sanitation</option>
+                    <option value="Structural / Roof">🏢 Civil & Roof Maintenance</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Priority Level:</label>
+                  <select value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)} className="form-select">
+                    <option value="high">🔴 High (Emergency)</option>
+                    <option value="medium">🟡 Medium (Standard SLA)</option>
+                    <option value="low">🟢 Low (Routine)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Issue Summary / Title:</label>
+                <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. Borehole pressure fault in Lane 1 House 4" className="form-control" required />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Detailed Description / Initial Feedback:</label>
+                <textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={3} placeholder="Describe the maintenance requirement..." className="form-control" required />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setIsCreatingNew(false)} className="btn btn-outline btn-sm">Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" style={{ backgroundColor: '#15803D' }}>Log Work Order</button>
               </div>
             </form>
           </div>
@@ -674,3 +635,5 @@ export const MaintenancePage: React.FC = () => {
     </div>
   );
 };
+
+export default MaintenancePage;
