@@ -18,6 +18,7 @@ import {
   Mail,
   CheckCircle2,
   ChevronDown,
+  ChevronRightCircle,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -48,20 +49,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         }}
       >
         {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'right', gap: '0.65rem' }}>
           <PhdlLogo size={36} />
           <div>
             <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#FFFFFF', letterSpacing: '0.03em', lineHeight: 1.2 }}>
               PHDL Estates
             </div>
             <div style={{ fontSize: '0.65rem', color: '#FBBF24', fontWeight: 700, letterSpacing: '0.04em' }}>
-              UNITY ESTATE COMMAND & RESIDENCY PORTAL
+              UNITY ESTATE CENTRAL PORTAL
             </div>
           </div>
         </div>
 
         {/* Desktop Nav Actions */}
-        <div className="landing-desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="landing-desktop-nav" style={{ display: 'flex', alignItems: 'right', gap: '0.75rem' }}>
           <button
             type="button"
             onClick={() => onNavigateToAuth('login')}
@@ -100,7 +101,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               boxShadow: '0 4px 12px rgba(153, 27, 27, 0.4)',
             }}
           >
-            <Sparkles size={14} /> Resident Onboarding
+            <ChevronRightCircle size={14} /> Resident Onboarding
           </button>
         </div>
 
@@ -199,12 +200,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
           gap: '1.5rem',
         }}
       >
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.85rem', borderRadius: 20, backgroundColor: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', color: '#FCD34D', fontSize: '0.75rem', fontWeight: 800 }}>
-          <Shield size={14} color="#FBBF24" />
-          <span>ARMED FORCES HOUSING SCHEME • RC 676563</span>
-        </div>
 
-        <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 3.2rem)', fontWeight: 900, color: '#FFFFFF', lineHeight: 1.15, maxWidth: 900 }}>
+        <h1 style={{ fontSize: 'clamp(1.9rem, 4vw, 3.6rem)', fontWeight: 900, color: '#FFFFFF', lineHeight: 1.25, maxWidth: 900 }}>
           Post-Housing Development Limited Estate Management System
         </h1>
 
@@ -220,25 +217,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             className="btn btn-primary"
             style={{ backgroundColor: '#15803D', padding: '0.75rem 1.5rem', fontWeight: 800, fontSize: '0.92rem', gap: '0.5rem' }}
           >
-            🏛️ SuperAdmin HQ Control <ArrowRight size={16} />
+            SuperAdmin HQ Control <ArrowRight size={16} />
           </button>
 
           <button
             type="button"
             onClick={() => onNavigateToAuth('login', 'soldier')}
             className="btn btn-outline"
-            style={{ borderColor: '#F59E0B', color: '#FCD34D', padding: '0.75rem 1.5rem', fontWeight: 800, fontSize: '0.92rem', gap: '0.5rem' }}
+            style={{ borderColor: '#16a413ff', color: '#2b951aff', padding: '0.75rem 1.5rem', fontWeight: 800, fontSize: '0.92rem', gap: '0.5rem' }}
           >
-            🪖 Soldier Landlord Portal
+            Soldier Landlord Portal
           </button>
 
           <button
             type="button"
             onClick={() => onNavigateToAuth('login', 'tenant')}
             className="btn btn-outline"
-            style={{ borderColor: '#3B82F6', color: '#93C5FD', padding: '0.75rem 1.5rem', fontWeight: 800, fontSize: '0.92rem', gap: '0.5rem' }}
+            style={{ borderColor: '#cc2711ff', color: '#bc0d00ff', padding: '0.75rem 1.5rem', fontWeight: 800, fontSize: '0.92rem', gap: '0.5rem' }}
           >
-            🏠 Resident Tenant Portal
+            Resident Tenant Portal
           </button>
         </div>
 
