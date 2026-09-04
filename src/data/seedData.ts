@@ -31,7 +31,7 @@ export const INITIAL_ESTATES: Estate[] = [
     zone: 'North Central',
     totalLanes: 8,
     totalBuildings: 101, // 9 + 18 + 18 + 18 + 16 + 8 + 7 + 7 = 101 Houses (Blocks)
-    totalFlats: 404, // 101 * 4 = 404 Flats
+    totalFlats: 400, // 101 * 4 = 400 Flats
     managerName: 'Col. T. A. Bello (Rtd)',
     managerPhone: '+234 803 452 1190',
     managerEmail: 'unity.manager@phdl.gov.ng',
@@ -424,7 +424,7 @@ export const AUTHENTICATED_ROSTER: AuthenticatedRosterItem[] = [
   { flatCode: 'L6H8A', tenantName: 'Wisdon Kennedy Kwaghfan', tenantEmail: 'godson.ogumka@gmail.com', tenantPhone: '0706 185 7420', landlordName: 'N/A', landlordPhone: 'N/A' },
   { flatCode: 'L6H8B', tenantName: 'Chukwuka Damian Ugwu', tenantEmail: 'N/A', tenantPhone: 'N/A', landlordName: 'N/A', landlordPhone: 'N/A' },
   { flatCode: 'L7H1A', tenantName: 'Rose Apuu', tenantEmail: 'nguherapuu@gmail.com', tenantPhone: '0810 893 2205', landlordName: 'Mohammed Musa', landlordPhone: '0803 690 8771' },
-  { flatCode: 'L7H1C', tenantName: 'Maximus Ndianaefo', tenantEmail: 'N/A', tenantPhone: '0803 404 2465', landlordName: 'Clement Odey', landlordPhone: '0706 456 6973' },
+  { flatCode: 'L7H1C', tenantName: 'Maximus Ndianaefo', tenantEmail: 'N/A', tenantPhone: '0803 400 2465', landlordName: 'Clement Odey', landlordPhone: '0706 456 6973' },
   { flatCode: 'L7H2A', tenantName: 'Jonathan Isah', tenantEmail: 'isahjonathan2@gmail.com', tenantPhone: '0903 137 6070', landlordName: 'Bashir Abba', landlordPhone: '0803 894 9839' },
   { flatCode: 'L7H2B', tenantName: 'Goody Oguzie', tenantEmail: 'consultgoody@gmail.com', tenantPhone: '0806 968 9913', landlordName: 'Damina Sammako', landlordPhone: '0703 383 3287' },
 
@@ -495,7 +495,7 @@ AUTHENTICATED_ROSTER.forEach((item) => {
   ROSTER_MAP.set(item.flatCode.toUpperCase(), item);
 });
 
-// Generate all 404 flats with precise landlords, tenants, and unoccupied statuses
+// Generate all 400 Flats with precise landlords, tenants, and unoccupied statuses
 export const generateEstateData = () => {
   const buildings: Building[] = [];
   const flats: Flat[] = [];
@@ -773,13 +773,13 @@ export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
     senderName: 'Col. T. A. Bello (Rtd) - Estate Manager',
     senderRole: 'PHDL Estate Management',
     title: 'Authentication and Full Roster Upload Completed for Unity Estate',
-    message: 'Official Landlord and Tenant rosters have been updated across all 404 flats. SuperAdmin edit capabilities are active for updating pending N/A records.',
+    message: 'Official Landlord and Tenant rosters have been updated across all 400 Flats. SuperAdmin edit capabilities are active for updating pending N/A records.',
     scope: 'estate_wide',
     channels: ['in_app', 'sms_termii', 'email'],
     deliveryStatus: {
-      inAppCount: 404,
-      smsSentCount: 404,
-      emailSentCount: 404,
+      inAppCount: 400,
+      smsSentCount: 400,
+      emailSentCount: 400,
     },
     createdAt: '2026-08-15T01:30:00Z',
   },
@@ -791,7 +791,7 @@ export const INITIAL_NOTIFICATIONS: SystemNotification[] = [
     recipientRole: 'phdl_admin',
     recipientId: 'admin',
     title: 'Estate Roster Authenticated',
-    message: 'All 404 flats synchronized with authentic tenant and soldier landlord records. Unconfirmed units marked as unoccupied.',
+    message: 'All 400 Flats synchronized with authentic tenant and soldier landlord records. Unconfirmed units marked as unoccupied.',
     type: 'estate_broadcast',
     channel: 'in_app',
     isRead: false,
@@ -808,8 +808,8 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     actorRole: 'phdl_admin',
     action: 'AUTHENTICATED_ROSTER_INGESTION',
     entityAffected: 'EstateHierarchy',
-    entityId: 'est-unity-404',
-    details: 'Erased old data and populated 404 flats with authenticated roster. Configured UnIdentified Soldier and Unconfirmed Tenant placeholders and tagged empty units as unoccupied.',
+    entityId: 'est-unity-400',
+    details: 'Erased old data and populated 400 Flats with authenticated roster. Configured UnIdentified Soldier and Unconfirmed Tenant placeholders and tagged empty units as unoccupied.',
     ipAddress: '197.210.84.1',
     timestamp: '2026-08-15T01:30:00Z',
   },

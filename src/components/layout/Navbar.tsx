@@ -11,7 +11,6 @@ import {
   ChevronDown,
   LogOut,
   Sparkles,
-  QrCode,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -52,79 +51,83 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header
       className="navbar"
       style={{
-        height: '64px',
+        height: '60px',
         backgroundColor: '#FFFFFF',
         borderBottom: '1px solid #E2E8F0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 1rem',
+        padding: '0 0.85rem',
         zIndex: 50,
         flexShrink: 0,
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        position: 'sticky',
+        top: 0,
       }}
     >
-      {/* Left: Hamburger & Mobile Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {/* Left: Hamburger & Brand */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="btn btn-outline btn-sm"
           style={{
             padding: '0.45rem',
             borderRadius: 6,
-            borderColor: '#CBD5E1',
+            border: '1px solid #CBD5E1',
+            backgroundColor: '#F8FAFC',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            cursor: 'pointer',
+            minWidth: '38px',
+            minHeight: '38px',
           }}
           aria-label="Toggle Navigation Menu"
         >
           {isSidebarOpen ? <X size={20} color="#071A0B" /> : <Menu size={20} color="#071A0B" />}
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <PhdlLogo size={32} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <PhdlLogo size={30} />
           <div className="navbar-estate-title">
-            <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#071A0B', lineHeight: 1.2 }}>
-              PHDL ESTATE MANAGER
+            <div style={{ fontWeight: 900, fontSize: '0.82rem', color: '#071A0B', lineHeight: 1.1 }}>
+              PHDL HOUSING
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#D97706', fontWeight: 800 }}>
-              {currentEstate?.name || 'Unity Estate (Kurudu)'}
+            <div style={{ fontSize: '0.65rem', color: '#D97706', fontWeight: 800 }}>
+              {currentEstate?.name ? currentEstate.name.split('(')[0] : 'Unity Estate'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right: Estate Selector & Role Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-        {/* Estate Picker Dropdown */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <select
-            value={activeEstateId}
-            onChange={(e) => {
-              store.setActiveEstateId(e.target.value);
-              window.location.reload();
-            }}
-            className="form-select"
-            style={{
-              padding: '0.35rem 0.6rem',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              backgroundColor: '#F8FAFC',
-              borderColor: '#CBD5E1',
-              maxWidth: 180,
-            }}
-          >
-            {NATIONWIDE_18_ESTATES.map((est) => (
-              <option key={est.id} value={est.id}>
-                {est.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Right: Compact Mobile Estate Selector & Role Switcher */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+        {/* Estate Picker */}
+        <select
+          value={activeEstateId}
+          onChange={(e) => {
+            store.setActiveEstateId(e.target.value);
+            window.location.reload();
+          }}
+          className="form-select"
+          style={{
+            padding: '0.35rem 0.5rem',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            backgroundColor: '#F8FAFC',
+            borderColor: '#CBD5E1',
+            maxWidth: '135px',
+            height: '34px',
+          }}
+        >
+          {NATIONWIDE_18_ESTATES.map((est) => (
+            <option key={est.id} value={est.id}>
+              {est.state}: {est.name.split('(')[0]}
+            </option>
+          ))}
+        </select>
 
-        {/* Role Switcher Button */}
+        {/* Role Switcher */}
         <div style={{ position: 'relative' }}>
           <button
             type="button"
@@ -132,19 +135,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.35rem 0.65rem',
+              gap: '0.3rem',
+              padding: '0.35rem 0.55rem',
               borderRadius: 20,
               border: `1px solid ${badge.border}`,
               backgroundColor: badge.bg,
               color: badge.text,
-              fontSize: '0.74rem',
+              fontSize: '0.72rem',
               fontWeight: 800,
               cursor: 'pointer',
+              height: '34px',
+              whiteSpace: 'nowrap',
             }}
           >
-            <span>{getRoleLabel(currentRole)}</span>
-            <ChevronDown size={13} />
+            <span>{getRoleLabel(currentRole).split(' ')[0]}</span>
+            <ChevronDown size={12} />
           </button>
 
           {showRoleMenu && (
@@ -153,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 position: 'absolute',
                 right: 0,
                 top: '110%',
-                width: 200,
+                width: 210,
                 backgroundColor: '#FFFFFF',
                 borderRadius: 8,
                 boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
@@ -166,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
             >
               <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', padding: '0.3rem 0.5rem', textTransform: 'uppercase' }}>
-                Switch Active Role:
+                Switch User Portal:
               </div>
 
               {[
@@ -189,7 +194,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     backgroundColor: currentRole === item.r ? '#F0FDF4' : 'transparent',
                     color: currentRole === item.r ? '#15803D' : '#1E293B',
                     fontWeight: currentRole === item.r ? 800 : 600,
-                    fontSize: '0.8rem',
+                    fontSize: '0.78rem',
                     cursor: 'pointer',
                   }}
                 >

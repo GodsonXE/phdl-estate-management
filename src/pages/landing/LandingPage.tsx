@@ -421,7 +421,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             }}
           >
             <div style={{ backgroundColor: 'rgba(7, 26, 11, 0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', padding: '1rem' }}>
-              <div style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 900, color: '#FCD34D', lineHeight: 1.1 }}>404 Flats</div>
+              <div style={{ fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)', fontWeight: 900, color: '#FCD34D', lineHeight: 1.1 }}>400 Flats</div>
               <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.75)', marginTop: '0.25rem' }}>101 Four-Flat Residential Blocks</div>
             </div>
             <div style={{ backgroundColor: 'rgba(7, 26, 11, 0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', padding: '1rem' }}>

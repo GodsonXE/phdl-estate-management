@@ -14,7 +14,7 @@ export const PhdlAppLoader: React.FC<PhdlAppLoaderProps> = ({ onComplete }) => {
   useEffect(() => {
     const t1 = setTimeout(() => {
       setProgress(40);
-      setStatusMessage('Loading 404 Housing Units & Estate Hierarchy...');
+      setStatusMessage('Loading 400 Housing Units & Estate Hierarchy...');
     }, 300);
 
     const t2 = setTimeout(() => {
