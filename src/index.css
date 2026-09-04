@@ -291,3 +291,37 @@ h1, h2, h3, h4 {
 .print-header {
   display: none;
 }
+/* MOBILE RESPONSIVE STYLES */
+@media (max-width: 768px) {
+  .sidebar-desktop {
+    display: none !important;
+  }
+
+  .main-content {
+    padding: 1rem !important;
+  }
+
+  .stat-card {
+    padding: 1rem !important;
+  }
+
+  .data-table th, .data-table td {
+    padding: 0.65rem 0.75rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  .modal-content {
+    max-width: 95% !important;
+    margin: 0.5rem !important;
+  }
+
+  .navbar-estate-title {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-drawer-overlay {
+    display: none !important;
+  }
+}

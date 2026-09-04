@@ -1,313 +1,234 @@
 import React, { useState } from 'react';
-import { usePhdlStore } from '../../data/storage';
+import { usePhdlStore, NATIONWIDE_18_ESTATES } from '../../data/storage';
 import { Role } from '../../types';
 import { PhdlLogo } from '../common/PhdlLogo';
 import {
   Menu,
+  X,
+  Building,
   Shield,
+  User,
   ChevronDown,
-  Sparkles,
   LogOut,
+  Sparkles,
+  QrCode,
 } from 'lucide-react';
-import { TenantOnboardingWizard } from '../onboarding/TenantOnboardingWizard';
 
-export interface NavbarProps {
-  onToggleSidebar?: () => void;
-  currentRole?: Role;
-  onSwitchRole?: (role: Role) => void;
-  onLogout?: () => void;
+interface NavbarProps {
+  onToggleSidebar: () => void;
+  currentRole: Role;
+  onSwitchRole: (role: Role) => void;
+  onLogout: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, currentRole, onSwitchRole, onLogout }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  onToggleSidebar,
+  currentRole,
+  onSwitchRole,
+  onLogout,
+  isSidebarOpen = false,
+}) => {
   const store = usePhdlStore();
-  const effectiveRole = currentRole || store.getActiveRole();
-  const currentEstateId = store.getActiveEstateId();
-  const currentEstate = store.getEstateById(currentEstateId);
+  const activeEstateId = store.getActiveEstateId();
+  const currentEstate = store.getEstateById(activeEstateId);
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
 
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
-  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
-
-  const handleSwitchRole = (role: Role) => {
-    if (onSwitchRole) {
-      onSwitchRole(role);
-    } else {
-      store.setActiveRole(role);
-    }
-    setShowRoleDropdown(false);
+  const getRoleLabel = (r: Role) => {
+    if (r === 'phdl_admin') return 'SuperAdmin HQ';
+    if (r === 'soldier') return 'Soldier Landlord';
+    return 'Resident Tenant';
   };
 
-  const getRoleBadgeLabel = (role: Role) => {
-    switch (role) {
-      case 'phdl_admin':
-        return 'SuperAdmin HQ';
-      case 'soldier':
-        return 'Soldier Landlord';
-      case 'tenant':
-        return 'Civilian Resident';
-      default:
-        return 'User';
-    }
+  const getRoleBadgeStyle = (r: Role) => {
+    if (r === 'phdl_admin') return { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' };
+    if (r === 'soldier') return { bg: '#FEFCE8', text: '#92400E', border: '#FDE68A' };
+    return { bg: '#EFF6FF', text: '#1E40AF', border: '#BFDBFE' };
   };
 
-  const getRoleShortLabel = (role: Role) => {
-    switch (role) {
-      case 'phdl_admin':
-        return 'HQ Admin';
-      case 'soldier':
-        return 'Landlord';
-      case 'tenant':
-        return 'Resident';
-      default:
-        return 'User';
-    }
-  };
+  const badge = getRoleBadgeStyle(currentRole);
 
   return (
     <header
       className="navbar"
       style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0.65rem clamp(0.75rem, 2vw, 1.5rem)',
+        height: '64px',
         backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid var(--border-light, #E2E8F0)',
-        minHeight: '60px',
-        width: '100%',
-        boxSizing: 'border-box',
-        position: 'sticky',
-        top: 0,
+        borderBottom: '1px solid #E2E8F0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 1rem',
         zIndex: 50,
+        flexShrink: 0,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
       }}
     >
-      {/* Brand Title & Mobile Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            className="navbar-mobile-toggle"
-            aria-label="Open Navigation Menu"
-            style={{
-              padding: '0.4rem',
-              borderRadius: '6px',
-              border: '1px solid var(--border-subtle, #CBD5E1)',
-              backgroundColor: '#F8FAFC',
-              color: 'var(--army-green-950, #0B2410)',
-              cursor: 'pointer',
-              display: 'none',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Menu size={20} />
-          </button>
-        )}
+      {/* Left: Hamburger & Mobile Brand */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="btn btn-outline btn-sm"
+          style={{
+            padding: '0.45rem',
+            borderRadius: 6,
+            borderColor: '#CBD5E1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-label="Toggle Navigation Menu"
+        >
+          {isSidebarOpen ? <X size={20} color="#071A0B" /> : <Menu size={20} color="#071A0B" />}
+        </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', minWidth: 0 }}>
-          <PhdlLogo size={34} />
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
-                color: 'var(--army-green-950, #0B2410)',
-                lineHeight: 1.15,
-                letterSpacing: '0.02em',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-              }}
-            >
-              PHDL Estates
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <PhdlLogo size={32} />
+          <div className="navbar-estate-title">
+            <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#071A0B', lineHeight: 1.2 }}>
+              PHDL ESTATE MANAGER
             </div>
-            <div
-              className="navbar-subtitle"
-              style={{
-                fontSize: '0.68rem',
-                color: 'var(--text-subtle, #64748B)',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-              }}
-            >
-              RC 676563 • {currentEstate?.name || 'Unity Estate'}
+            <div style={{ fontSize: '0.68rem', color: '#D97706', fontWeight: 800 }}>
+              {currentEstate?.name || 'Unity Estate (Kurudu)'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Role Persona Switcher & Sign Out */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-            className="btn btn-outline btn-sm role-switcher-btn"
+      {/* Right: Estate Selector & Role Switcher */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        {/* Estate Picker Dropdown */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <select
+            value={activeEstateId}
+            onChange={(e) => {
+              store.setActiveEstateId(e.target.value);
+              window.location.reload();
+            }}
+            className="form-select"
             style={{
-              gap: '0.35rem',
-              borderColor: 'var(--army-green-800, #1B4D21)',
+              padding: '0.35rem 0.6rem',
+              fontSize: '0.75rem',
               fontWeight: 700,
-              backgroundColor: '#FFFFFF',
-              color: 'var(--army-green-950, #0B2410)',
-              padding: '0.4rem 0.65rem',
-              fontSize: '0.8rem',
-              display: 'flex',
-              alignItems: 'center',
+              backgroundColor: '#F8FAFC',
+              borderColor: '#CBD5E1',
+              maxWidth: 180,
             }}
           >
-            <Shield size={14} color="var(--army-green-800, #1B4D21)" />
-            <span className="role-btn-full-text">
-              Role: {getRoleBadgeLabel(effectiveRole)}
-            </span>
-            <span className="role-btn-short-text">
-              {getRoleShortLabel(effectiveRole)}
-            </span>
-            <ChevronDown size={14} />
+            {NATIONWIDE_18_ESTATES.map((est) => (
+              <option key={est.id} value={est.id}>
+                {est.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Role Switcher Button */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setShowRoleMenu(!showRoleMenu)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.35rem 0.65rem',
+              borderRadius: 20,
+              border: `1px solid ${badge.border}`,
+              backgroundColor: badge.bg,
+              color: badge.text,
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            <span>{getRoleLabel(currentRole)}</span>
+            <ChevronDown size={13} />
           </button>
 
-          {showRoleDropdown && (
+          {showRoleMenu && (
             <div
-              className="card dropdown-menu"
               style={{
                 position: 'absolute',
-                top: '100%',
                 right: 0,
-                marginTop: '0.4rem',
-                width: 'max-content',
-                minWidth: '240px',
-                maxWidth: 'calc(100vw - 1.5rem)',
-                zIndex: 1000,
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
-                padding: '0.5rem',
+                top: '110%',
+                width: 200,
                 backgroundColor: '#FFFFFF',
-                borderRadius: '8px',
+                borderRadius: 8,
+                boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
                 border: '1px solid #E2E8F0',
+                padding: '0.4rem',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.2rem',
               }}
             >
-              <div
-                style={{
-                  padding: '0.35rem 0.5rem',
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  color: '#64748B',
-                }}
-              >
-                SWITCH USER PERSONA
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', padding: '0.3rem 0.5rem', textTransform: 'uppercase' }}>
+                Switch Active Role:
               </div>
-              <button
-                onClick={() => handleSwitchRole('phdl_admin')}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  background: effectiveRole === 'phdl_admin' ? '#F1F5F9' : 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'block',
-                }}
-              >
-                <strong style={{ fontSize: '0.82rem', color: '#0B2410' }}>
-                  Col. Farouk Danjuma (Rtd.)
-                </strong>
-                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
-                  PHDL SuperAdmin HQ
-                </div>
-              </button>
-              <button
-                onClick={() => handleSwitchRole('soldier')}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  background: effectiveRole === 'soldier' ? '#F1F5F9' : 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'block',
-                }}
-              >
-                <strong style={{ fontSize: '0.82rem', color: '#0B2410' }}>
-                  Staff Sgt. Adamu Mohammed
-                </strong>
-                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
-                  Soldier Owner (Flat L1H1A)
-                </div>
-              </button>
-              <button
-                onClick={() => handleSwitchRole('tenant')}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  background: effectiveRole === 'tenant' ? '#F1F5F9' : 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'block',
-                }}
-              >
-                <strong style={{ fontSize: '0.82rem', color: '#0B2410' }}>
-                  Emeka Gabriel Okon
-                </strong>
-                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
-                  Tenant Resident (Flat L1H1A)
-                </div>
-              </button>
 
-              <hr style={{ margin: '0.4rem 0', borderColor: '#E2E8F0' }} />
+              {[
+                { r: 'phdl_admin' as Role, label: '🏛️ SuperAdmin HQ' },
+                { r: 'soldier' as Role, label: '🪖 Soldier Landlord' },
+                { r: 'tenant' as Role, label: '🏠 Resident Tenant' },
+              ].map((item) => (
+                <button
+                  key={item.r}
+                  type="button"
+                  onClick={() => {
+                    onSwitchRole(item.r);
+                    setShowRoleMenu(false);
+                  }}
+                  style={{
+                    padding: '0.5rem 0.6rem',
+                    textAlign: 'left',
+                    borderRadius: 6,
+                    border: 'none',
+                    backgroundColor: currentRole === item.r ? '#F0FDF4' : 'transparent',
+                    color: currentRole === item.r ? '#15803D' : '#1E293B',
+                    fontWeight: currentRole === item.r ? 800 : 600,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
 
-              <button
-                onClick={() => {
-                  setShowRoleDropdown(false);
-                  setShowOnboardingWizard(true);
-                }}
-                className="btn btn-primary btn-sm"
-                style={{
-                  width: '100%',
-                  gap: '0.4rem',
-                  backgroundColor: '#1B4D21',
-                  color: '#FFFFFF',
-                  padding: '0.5rem',
-                  fontSize: '0.78rem',
-                }}
-              >
-                <Sparkles size={14} />
-                Start Tenant Onboarding Flow
-              </button>
+              <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '0.3rem', paddingTop: '0.3rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRoleMenu(false);
+                    onLogout();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.6rem',
+                    textAlign: 'left',
+                    borderRadius: 6,
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: '#EF4444',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <LogOut size={13} /> Sign Out to Home
+                </button>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Prominent Red Sign Out Button */}
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="btn btn-sm signout-btn"
-            style={{
-              gap: '0.35rem',
-              backgroundColor: '#FEF2F2',
-              borderColor: '#FCA5A5',
-              color: '#991B1B',
-              fontWeight: 800,
-              cursor: 'pointer',
-              padding: '0.4rem 0.65rem',
-              fontSize: '0.8rem',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-            title="Sign Out to Public Landing Page"
-          >
-            <LogOut size={14} />
-            <span className="signout-text">Sign Out</span>
-          </button>
-        )}
       </div>
-
-      {showOnboardingWizard && (
-        <TenantOnboardingWizard onClose={() => setShowOnboardingWizard(false)} />
-      )}
     </header>
   );
 };
+
+export default Navbar;
