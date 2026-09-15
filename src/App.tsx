@@ -1,1163 +1,2011 @@
-﻿import React, { useState } from 'react';
-import { LandingPage } from './pages/landing/LandingPage';
+﻿import React, { useState, useMemo } from 'react';
 import {
-  Shield,
-  Home,
-  Users,
-  CreditCard,
-  Zap,
-  Activity,
-  Award,
-  Bell,
-  CheckCircle2,
-  FileText,
-  Key,
-  Lock,
-  Menu,
-  PhoneCall,
-  Plus,
-  RefreshCw,
-  Search,
-  Settings,
-  Sparkles,
-  Wrench,
-  TrendingUp,
-  UserCheck,
-  X,
-  AlertTriangle,
-  Clock,
-  Compass,
-  DollarSign,
-  Download,
-  Upload,
-  Building2,
-  ChevronRight,
-  LogOut,
-  QrCode,
-  Check,
-  ArrowRight,
-  Send,
-  Printer,
-  Share2,
-  Eye,
-  Trash2,
-  Edit3
+  Building2, Users, Shield, ShieldCheck, Home, KeyRound, Wrench,
+  CreditCard, Bell, FileText, Settings, LogOut, CheckCircle2,
+  AlertTriangle, Clock, Search, Filter, Download, Plus, Trash2,
+  Edit3, Eye, Printer, Send, RefreshCw, Smartphone, Zap, MapPin,
+  ChevronRight, Lock, Check, X, Sliders, DollarSign, UserCheck
 } from 'lucide-react';
 
-export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>('landing');
-  const [currentRole, setCurrentRole] = useState<'soldier' | 'tenant' | 'admin'>('soldier');
-  const [activeTab, setActiveTab] = useState<string>('overview');
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+// ==========================================
+// TYPES & DATA STRUCTURES
+// ==========================================
+type Role = 'super_admin' | 'soldier_landlord' | 'resident_tenant';
 
-  // Active Toast Notification State
+interface Apartment {
+  id: string;
+  lane: number;
+  blockNumber: number;
+  flatCode: 'A' | 'B' | 'C' | 'D';
+  fullCode: string;
+  status: 'occupied' | 'vacant' | 'maintenance';
+  tenantName?: string;
+  tenantPhone?: string;
+  landlordName: string;
+  landlordServiceNo: string;
+  serviceChargeStatus: 'paid' | 'due' | 'overdue';
+  electricityMeterNo: string;
+}
+
+interface Tenant {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  apartmentCode: string;
+  lane: number;
+  landlordName: string;
+  kycStatus: 'Verified' | 'Pending' | 'Expired';
+  leaseStart: string;
+  leaseEnd: string;
+  serviceChargeStatus: 'Paid' | 'Due' | 'Overdue';
+  monthlyRent: number;
+}
+
+interface Landlord {
+  id: string;
+  serviceNo: string;
+  rank: string;
+  name: string;
+  assignedApartment: string;
+  phone: string;
+  email: string;
+  allocationDeed: 'Verified & Titled' | 'Verified' | 'Under Review';
+  singleUnitCompliant: boolean;
+  bankAccount: string;
+  bankName: string;
+}
+
+// Generate the canonical 400 apartments across 8 lanes (100 blocks x 4 flats)
+const generate400Apartments = (): Apartment[] => {
+  const lanesConfig = [
+    { lane: 1, startBlock: 1, endBlock: 9 },    // 9 blocks = 36 flats
+    { lane: 2, startBlock: 10, endBlock: 26 },  // 17 blocks = 68 flats
+    { lane: 3, startBlock: 27, endBlock: 44 },  // 18 blocks = 72 flats
+    { lane: 4, startBlock: 45, endBlock: 62 },  // 18 blocks = 72 flats
+    { lane: 5, startBlock: 63, endBlock: 78 },  // 16 blocks = 64 flats
+    { lane: 6, startBlock: 79, endBlock: 86 },  // 8 blocks = 32 flats
+    { lane: 7, startBlock: 87, endBlock: 93 },  // 7 blocks = 28 flats
+    { lane: 8, startBlock: 94, endBlock: 100 }  // 7 blocks = 28 flats (Total: 100 blocks = 400 flats)
+  ];
+
+  const ranks = ['Brig Gen', 'Col', 'Lt Col', 'Maj', 'Capt', 'Lt', 'MWO', 'WO', 'Sgt'];
+  const firstNames = ['Ibrahim', 'Chinedu', 'Oluwaseun', 'Musa', 'Emeka', 'Babajide', 'Ahmed', 'Tari', 'Danladi', 'Usman'];
+  const lastNames = ['Yusuf', 'Okafor', 'Adeyemi', 'Garba', 'Nwosu', 'Bello', 'Eze', 'Abubakar', 'Danjuma', 'Lawal'];
+  const tenantFirstNames = ['David', 'Blessing', 'Emmanuel', 'Grace', 'Chiamaka', 'Femi', 'Kelechi', 'Ngozi', 'Victor', 'Fatima'];
+  const tenantLastNames = ['Johnson', 'Okoro', 'Balogun', 'Dan-Ali', 'Ogunleye', 'Ibe', 'Kalu', 'Mohammed', 'Aliyu', 'Williams'];
+
+  const flats: Apartment[] = [];
+
+  lanesConfig.forEach(({ lane, startBlock, endBlock }) => {
+    for (let b = startBlock; b <= endBlock; b++) {
+      (['A', 'B', 'C', 'D'] as const).forEach((flatCode, fIdx) => {
+        const seed = (b * 4 + fIdx);
+        const isOccupied = seed % 5 !== 0;
+        const isMaintenance = seed % 23 === 0;
+        const status = isMaintenance ? 'maintenance' : (isOccupied ? 'occupied' : 'vacant');
+
+        const lRank = ranks[(b + fIdx) % ranks.length];
+        const lFirst = firstNames[(b * 3 + fIdx) % firstNames.length];
+        const lLast = lastNames[(b * 7 + fIdx) % lastNames.length];
+        const lName = `${lRank} ${lFirst} ${lLast}`;
+        const lSvcNo = `NA/${10000 + (b * 13 + fIdx)}`;
+
+        const tFirst = tenantFirstNames[(seed * 2) % tenantFirstNames.length];
+        const tLast = tenantLastNames[(seed * 5) % tenantLastNames.length];
+        const tName = `${tFirst} ${tLast}`;
+
+        flats.push({
+          id: `apt-L${lane}-B${b}-${flatCode}`,
+          lane,
+          blockNumber: b,
+          flatCode,
+          fullCode: `L${lane}-B${b}-${flatCode}`,
+          status,
+          tenantName: status === 'occupied' ? tName : undefined,
+          tenantPhone: status === 'occupied' ? `0803${(1000000 + seed * 97).toString().slice(0, 7)}` : undefined,
+          landlordName: lName,
+          landlordServiceNo: lSvcNo,
+          serviceChargeStatus: seed % 7 === 0 ? 'overdue' : (seed % 4 === 0 ? 'due' : 'paid'),
+          electricityMeterNo: `0418${(20000000 + seed * 331).toString().slice(0, 8)}`
+        });
+      });
+    }
+  });
+
+  return flats;
+};
+
+// ==========================================
+// MAIN ROOT COMPONENT
+// ==========================================
+export const App: React.FC = () => {
+  // Navigation & Role State
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [currentRole, setCurrentRole] = useState<Role>('super_admin');
+  const [activeTab, setActiveTab] = useState<string>('apartments');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Master Data State
+  const [apartments, setApartments] = useState<Apartment[]>(() => generate400Apartments());
+  const [selectedLane, setSelectedLane] = useState<number | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // BulkSMSNigeria State
+  const [smsApiKey, setSmsApiKey] = useState('bksms_live_948a274df810bc826e792');
+  const [smsSenderId, setSmsSenderId] = useState('PHDL-ESTATE');
+  const [smsBalance, setSmsBalance] = useState(48500);
+  const [testSmsRecipient, setTestSmsRecipient] = useState('');
+  const [testSmsText, setTestSmsText] = useState('PHDL Estate Notice: Routine water supply maintenance scheduled for tomorrow 0900hrs.');
+
+  // Payment Gateway Settings State
+  const [paystackConfig, setPaystackConfig] = useState({
+    publicKey: 'pk_live_89324792348aef09c',
+    secretKey: 'sk_live_9384729384bcda832',
+    webhookUrl: 'https://api.phdl-estate.mil.ng/webhooks/paystack',
+    isLive: true
+  });
+  const [flutterwaveConfig, setFlutterwaveConfig] = useState({
+    publicKey: 'FLWPUBK_LIVE-847294872934-X',
+    secretKey: 'FLWSECK_LIVE-398472983749-X',
+    webhookUrl: 'https://api.phdl-estate.mil.ng/webhooks/flutterwave',
+    isLive: true
+  });
+
+  // Service Charge Tariff Allocation State (₦10,000 base)
+  const [tariffs, setTariffs] = useState({
+    baseLevy: 10000,
+    dieselGenerator: 4500,
+    militarySentry: 2500,
+    sanitationWaste: 1500,
+    waterPumping: 1000,
+    streetlightingReserve: 500,
+    latePenaltyPercent: 5,
+    dueDateDay: 10
+  });
+
+  // Tenancy Agreement Form State
+  const [agreementData, setAgreementData] = useState({
+    landlordName: 'Col. Ibrahim Yusuf (NA/18242)',
+    tenantName: 'David Johnson',
+    propertyDescription: 'Lane 2, Block 14, Flat B (4-Flat Block)',
+    annualRent: 1500000,
+    legalFee: 150000,
+    cautionFee: 150000,
+    commenceDate: '2026-01-01',
+    expiryDate: '2026-12-31',
+    sentryCurfewClause: true,
+    sublettingClause: true
+  });
+
+  // Notification Composer State
+  const [broadcastChannel, setBroadcastChannel] = useState<'all' | 'sms' | 'email' | 'in_app'>('all');
+  const [broadcastTarget, setBroadcastTarget] = useState<string>('all_residents');
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+
+  // Selected Item Modals
+  const [inspectApt, setInspectApt] = useState<Apartment | null>(null);
+  const [showAddTenantModal, setShowAddTenantModal] = useState(false);
+  const [newTenantData, setNewTenantData] = useState({ name: '', phone: '', email: '', flatCode: 'L1-B1-A', rent: 1500000 });
+
+  // Quick Toast Helper
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // =========================================================================
-  // INTERACTIVE FEATURE STATES
-  // =========================================================================
-  
-  // 1. Tenant: Payment Gateway State
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'transfer' | 'ussd'>('card');
-  const [paymentSuccessReceipt, setPaymentSuccessReceipt] = useState<any | null>(null);
+  // Filtered Apartments
+  const filteredFlats = useMemo(() => {
+    return apartments.filter(apt => {
+      const matchLane = selectedLane === 'all' || apt.lane === selectedLane;
+      const matchStatus = statusFilter === 'all' || apt.status === statusFilter;
+      const q = searchQuery.toLowerCase();
+      const matchSearch = !q ||
+        apt.fullCode.toLowerCase().includes(q) ||
+        (apt.tenantName && apt.tenantName.toLowerCase().includes(q)) ||
+        apt.landlordName.toLowerCase().includes(q) ||
+        apt.landlordServiceNo.toLowerCase().includes(q);
+      return matchLane && matchStatus && matchSearch;
+    });
+  }, [apartments, selectedLane, statusFilter, searchQuery]);
 
-  // 2. Tenant: Prepaid Electricity Token State
-  const [meterAmount, setMeterAmount] = useState<number>(5000);
-  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  // Derived Tenants list from occupied flats
+  const tenantsList: Tenant[] = useMemo(() => {
+    return apartments
+      .filter(a => a.status === 'occupied' && a.tenantName)
+      .map((a, idx) => ({
+        id: `t-${a.id}`,
+        name: a.tenantName!,
+        phone: a.tenantPhone || '08030000000',
+        email: `${a.tenantName!.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
+        apartmentCode: a.fullCode,
+        lane: a.lane,
+        landlordName: a.landlordName,
+        kycStatus: idx % 6 === 0 ? 'Pending' : 'Verified',
+        leaseStart: '2026-01-01',
+        leaseEnd: '2026-12-31',
+        serviceChargeStatus: a.serviceChargeStatus === 'paid' ? 'Paid' : (a.serviceChargeStatus === 'due' ? 'Due' : 'Overdue'),
+        monthlyRent: 1500000
+      }));
+  }, [apartments]);
 
-  // 3. Tenant: Visitor Pass Generator State
-  const [visitorName, setVisitorName] = useState('');
-  const [visitorPlate, setVisitorPlate] = useState('');
-  const [visitorPhone, setVisitorPhone] = useState('');
-  const [activePassCode, setActivePassCode] = useState<string | null>('GEN-9824-QR');
+  // Derived Landlords list
+  const landlordsList: Landlord[] = useMemo(() => {
+    const list: Landlord[] = [];
+    const seen = new Set<string>();
+    apartments.forEach(apt => {
+      if (!seen.has(apt.landlordServiceNo)) {
+        seen.add(apt.landlordServiceNo);
+        const rankParts = apt.landlordName.split(' ');
+        const rank = rankParts[0];
+        const name = rankParts.slice(1).join(' ');
+        list.push({
+          id: `lld-${apt.landlordServiceNo}`,
+          serviceNo: apt.landlordServiceNo,
+          rank,
+          name,
+          assignedApartment: apt.fullCode,
+          phone: `0802${Math.floor(1000000 + Math.random() * 9000000)}`,
+          email: `${name.toLowerCase().replace(/\s+/g, '.')}@army.mil.ng`,
+          allocationDeed: 'Verified & Titled',
+          singleUnitCompliant: true,
+          bankAccount: '0123456789',
+          bankName: 'Zenith Bank'
+        });
+      }
+    });
+    return list;
+  }, [apartments]);
 
-  // 4. Tenant: Maintenance Ticket State
-  const [ticketCategory, setTicketCategory] = useState('Plumbing & Borehole');
-  const [ticketPriority, setTicketPriority] = useState('High');
-  const [ticketDescription, setTicketDescription] = useState('');
-  const [ticketsList, setTicketsList] = useState<any[]>([
-    { id: 'TKT-104', category: 'Plumbing', desc: 'Borehole water pressure valve in Flat B', priority: 'High', status: 'In Progress', date: '14 Sep 2026' },
-    { id: 'TKT-089', category: 'Electrical', desc: 'Street light lamp near House 14, Lane 3', priority: 'Medium', status: 'Resolved', date: '02 Sep 2026' }
-  ]);
-
-  // 5. Soldier Landlord: EOI Application Form State
-  const [eoiFormOpen, setEoiFormOpen] = useState(false);
-  const [eoiScheme, setEoiScheme] = useState('Unity Estate (Kurudu, Abuja)');
-  const [eoiRank, setEoiRank] = useState('Major');
-  const [eoiServiceNo, setEoiServiceNo] = useState('N/12849');
-
-  // 6. SuperAdmin: Broadcast SMS / Notification State
-  const [broadcastRecipient, setBroadcastRecipient] = useState('All 400 Flats (Lanes 1 to 8)');
-  const [broadcastTitle, setBroadcastTitle] = useState('');
-  const [broadcastMessage, setBroadcastMessage] = useState('');
-
-  // 7. SuperAdmin: 400 Flats Search & Allocation State
-  const [flatSearchQuery, setFlatSearchQuery] = useState('');
-  const [allocateModalOpen, setAllocateModalOpen] = useState(false);
-  const [selectedLane, setSelectedLane] = useState('Lane 3 (Command Avenue)');
-  const [selectedHouse, setSelectedHouse] = useState('House 14');
-  const [selectedFlatUnit, setSelectedFlatUnit] = useState('Flat B');
-  const [assigneeName, setAssigneeName] = useState('');
-  const [assigneeServiceNo, setAssigneeServiceNo] = useState('');
-
-  // 8. SuperAdmin: Defaulters Restriction List
-  const [defaulters, setDefaulters] = useState<any[]>([
-    { id: 1, flat: 'House 5, Flat C (Lane 1)', occupant: 'Capt. A. Mohammed', amountDue: '₦20,000', months: '2 Months', restricted: true },
-    { id: 2, flat: 'House 22, Flat A (Lane 2)', occupant: 'Mr. Jude Obi', amountDue: '₦10,000', months: '1 Month', restricted: false },
-    { id: 3, flat: 'House 48, Flat D (Lane 4)', occupant: 'Lt. Cdr. T. Alabi', amountDue: '₦30,000', months: '3 Months', restricted: true },
-    { id: 4, flat: 'House 65, Flat B (Lane 5)', occupant: 'Alh. S. Danbaba', amountDue: '₦10,000', months: '1 Month', restricted: false }
-  ]);
-
-  // Toggle Defaulter Gate Restriction
-  const toggleDefaulterRestriction = (id: number) => {
-    setDefaulters(defaulters.map(d => d.id === id ? { ...d, restricted: !d.restricted } : d));
-    showToast('RFID Gate Pass restriction updated in Sentinel database.');
-  };
-
-  // Role Configurations
-  const roleData = {
-    soldier: {
-      name: 'Major Ibrahim Danjuma',
-      serviceNo: 'N/12849',
-      roleTitle: 'Soldier Landlord',
-      rank: 'Major (Nigerian Army)',
-      flat: 'House 14, Flat B',
-      lane: 'Lane 3 (Command Avenue)',
-      equity: '100% Amortized',
-      tenant: 'Dr. Emeka Okafor (Active Lease)',
-      tabs: [
-        { id: 'overview', label: 'Command Overview', icon: Activity },
-        { id: 'equity', label: 'Housing Equity & Deed', icon: Award },
-        { id: 'eoi', label: 'Apply for EOI Scheme', icon: FileText },
-        { id: 'tenants', label: 'Tenant & Lease Directory', icon: Users },
-        { id: 'remittance', label: 'Rent & Pension Sync', icon: CreditCard },
-        { id: 'maintenance', label: 'Levies & Upkeep', icon: Wrench },
-        { id: 'idcard', label: 'Digital Landlord ID', icon: Key },
-        { id: 'settings', label: 'Officer Profile', icon: Settings }
-      ]
-    },
-    tenant: {
-      name: 'Dr. Emeka Okafor',
-      serviceNo: 'PHDL/CIV/092',
-      roleTitle: 'Resident Tenant',
-      rank: 'Civilian Resident',
-      flat: 'House 14, Flat B',
-      lane: 'Lane 3 (Command Avenue)',
-      equity: 'Annual Verified Lease',
-      tenant: 'Primary Occupant',
-      tabs: [
-        { id: 'overview', label: 'Resident Home', icon: Activity },
-        { id: 'service-charge', label: 'Pay ₦10k Service Charge', icon: CreditCard },
-        { id: 'electricity', label: 'Prepaid Metering Token', icon: Zap },
-        { id: 'visitor-pass', label: 'Visitor QR Gate Pass', icon: QrCode },
-        { id: 'maintenance', label: 'Maintenance Helpdesk', icon: Wrench },
-        { id: 'broadcasts', label: 'Estate Notice Board', icon: Bell },
-        { id: 'idcard', label: 'Digital Resident Pass', icon: Key },
-        { id: 'settings', label: 'Resident Profile', icon: Settings }
-      ]
-    },
-    admin: {
-      name: 'Col. M. Bello',
-      serviceNo: 'HQ/DIR/001',
-      roleTitle: 'SuperAdmin HQ',
-      rank: 'Director, PHDL Real Estate',
-      flat: 'PHDL Command Headquarters',
-      lane: '18 Nationwide Portfolio Schemes',
-      equity: 'Executive Authority',
-      tenant: '400 Flats Registry',
-      tabs: [
-        { id: 'overview', label: 'Executive HQ Master', icon: Activity },
-        { id: 'allocation-control', label: '400 Flats Allocation Engine', icon: Award },
-        { id: 'financial-ledger', label: '₦4.0M Monthly Pool Ledger', icon: DollarSign },
-        { id: 'broadcast-sms', label: 'SMS & Broadcast Gateway', icon: Send },
-        { id: 'security-barrier', label: 'RFID Sentry & Defaulters', icon: Shield },
-        { id: 'utilities', label: 'Power & Water Telemetry', icon: Zap },
-        { id: 'nationwide', label: '18 Nationwide Schemes', icon: Building2 },
-        { id: 'settings', label: 'System Configuration', icon: Settings }
-      ]
-    }
-  };
-
-  const handleSwitchRole = (role: 'soldier' | 'tenant' | 'admin') => {
-    setCurrentRole(role);
-    setActiveTab('overview');
-    setCurrentView('dashboard');
-  };
-
-  const handleLogin = (role: 'soldier' | 'tenant' | 'admin' | 'security') => {
-    const targetRole = role === 'security' ? 'admin' : role;
-    handleSwitchRole(targetRole as any);
-  };
-
-  // CSV Export Utility Simulation
-  const handleExportCSV = (filename: string, content: string) => {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+  // CSV Exporter
+  const exportCsv = (filename: string, headers: string[], rows: (string | number)[][]) => {
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.setAttribute('href', url);
+    link.setAttribute('href', encodedUri);
     link.setAttribute('download', `${filename}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast(`Exported ${filename}.csv successfully!`);
+    showToast(`Exported ${filename}.csv successfully`);
   };
 
-  const currentConfig = roleData[currentRole];
-  const currentTabs = currentConfig.tabs;
+  // Render Role Switcher Header Bar
+  const renderRoleBanner = () => (
+    <div className="bg-slate-900 text-white px-6 py-2.5 flex flex-wrap items-center justify-between border-b border-slate-800 text-xs">
+      <div className="flex items-center space-x-3">
+        <span className="flex items-center font-bold tracking-wider text-emerald-400 uppercase">
+          <Shield className="w-4 h-4 mr-1.5 text-emerald-400" />
+          PHDL HQ Command Portal
+        </span>
+        <span className="text-slate-400">|</span>
+        <span className="text-slate-300">Port Harcourt Post-Housing Military Estate • 100 Blocks / 400 Apartments</span>
+      </div>
+      <div className="flex items-center space-x-3 mt-2 sm:mt-0">
+        <span className="text-slate-400">Simulate User Role:</span>
+        <button
+          onClick={() => { setCurrentRole('super_admin'); setActiveTab('apartments'); showToast('Switched to Super Admin View'); }}
+          className={`px-3 py-1 rounded font-semibold transition ${currentRole === 'super_admin' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+        >
+          Super Admin HQ
+        </button>
+        <button
+          onClick={() => { setCurrentRole('soldier_landlord'); setActiveTab('landlord_property'); showToast('Switched to Soldier Landlord View'); }}
+          className={`px-3 py-1 rounded font-semibold transition ${currentRole === 'soldier_landlord' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+        >
+          Soldier Landlord
+        </button>
+        <button
+          onClick={() => { setCurrentRole('resident_tenant'); setActiveTab('tenant_bills'); showToast('Switched to Resident Tenant View'); }}
+          className={`px-3 py-1 rounded font-semibold transition ${currentRole === 'resident_tenant' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+        >
+          Resident Tenant
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#07120a', color: '#0f172a', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-      
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          backgroundColor: '#0f291e',
-          color: '#fef08a',
-          border: '1px solid rgba(251, 191, 36, 0.5)',
-          padding: '0.85rem 1.25rem',
-          borderRadius: '10px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.65rem',
-          fontSize: '0.88rem',
-          fontWeight: 700
-        }}>
-          <CheckCircle2 size={18} color="#22c55e" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+    <div className="min-h-screen flex flex-col font-sans bg-slate-50 text-slate-900">
+      {/* Top Telemetry / Role Switch Bar */}
+      {renderRoleBanner()}
 
-      {currentView === 'landing' ? (
-        /* Redesigned Modern Landing Page */
-        <LandingPage onLogin={handleLogin} />
-      ) : (
-        /* White Dashboard Layout with Dark Sidebar */
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          
-          {/* ========================================================================= */}
-          {/* 1. TOP HEADER                                                             */}
-          {/* ========================================================================= */}
-          <header style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            backgroundColor: '#071a0b',
-            borderBottom: '1px solid rgba(245, 158, 11, 0.3)',
-            padding: '0.65rem clamp(1rem, 3vw, 2rem)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            color: '#ffffff'
-          }}>
-            {/* Brand Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div onClick={() => setCurrentView('landing')} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'linear-gradient(135deg, #15803d 0%, #047857 50%, #b45309 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(251, 191, 36, 0.3)' }}>
-                  <Shield size={22} color="#fef08a" />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff', lineHeight: 1.1 }}>
-                    PHDL <span style={{ color: '#f59e0b' }}>ESTATES</span>
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: '#86efac', fontWeight: 700 }}>
-                    UNITY ESTATE (KURUDU, ABUJA)
-                  </div>
-                </div>
+      {/* Main App Layout */}
+      <div className="flex-1 flex flex-row overflow-hidden">
+        {/* SIDEBAR - Dark Military Green */}
+        <aside className="w-64 bg-[#05140b] text-slate-200 flex flex-col border-r border-emerald-950/60 shadow-xl shrink-0">
+          <div className="p-5 border-b border-emerald-900/40">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-800/80 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-lg shadow-inner">
+                <Building2 className="w-6 h-6 text-emerald-300" />
+              </div>
+              <div>
+                <h1 className="font-bold text-base text-white tracking-wide leading-tight">PHDL ESTATE</h1>
+                <p className="text-xs text-emerald-400/90 font-medium">Command & Facility Hub</p>
               </div>
             </div>
+            <div className="mt-3 px-2.5 py-1 rounded bg-emerald-950/90 border border-emerald-800/50 flex items-center justify-between text-[11px]">
+              <span className="text-slate-400">Current View:</span>
+              <span className="font-semibold text-emerald-300 capitalize">
+                {currentRole.replace('_', ' ')}
+              </span>
+            </div>
+          </div>
 
-            {/* Quick Role Switcher */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: 'rgba(0, 0, 0, 0.4)', padding: '0.25rem 0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, paddingRight: '0.25rem' }}>ACTIVE ROLE:</span>
-              <button type="button" onClick={() => handleSwitchRole('soldier')} style={{ padding: '0.25rem 0.65rem', borderRadius: '5px', backgroundColor: currentRole === 'soldier' ? '#15803d' : 'transparent', color: currentRole === 'soldier' ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: '0.76rem', border: 'none', cursor: 'pointer' }}>🎖️ Landlord</button>
-              <button type="button" onClick={() => handleSwitchRole('tenant')} style={{ padding: '0.25rem 0.65rem', borderRadius: '5px', backgroundColor: currentRole === 'tenant' ? '#0284c7' : 'transparent', color: currentRole === 'tenant' ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: '0.76rem', border: 'none', cursor: 'pointer' }}>🏡 Tenant</button>
-              <button type="button" onClick={() => handleSwitchRole('admin')} style={{ padding: '0.25rem 0.65rem', borderRadius: '5px', backgroundColor: currentRole === 'admin' ? '#ca8a04' : 'transparent', color: currentRole === 'admin' ? '#fff' : '#94a3b8', fontWeight: 800, fontSize: '0.76rem', border: 'none', cursor: 'pointer' }}>🏢 SuperAdmin</button>
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto text-sm">
+            {currentRole === 'super_admin' && (
+              <>
+                <div className="px-3 py-1 text-[11px] font-bold text-emerald-500/80 uppercase tracking-wider">
+                  Estate Master Registry
+                </div>
+                <button
+                  onClick={() => setActiveTab('apartments')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'apartments' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <Home className="w-4 h-4 mr-3 text-emerald-400" />
+                  All 400 Apartments (8 Lanes)
+                </button>
+                <button
+                  onClick={() => setActiveTab('tenants')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'tenants' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <Users className="w-4 h-4 mr-3 text-emerald-400" />
+                  Estate Residents & Tenants
+                </button>
+                <button
+                  onClick={() => setActiveTab('landlords')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'landlords' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <ShieldCheck className="w-4 h-4 mr-3 text-emerald-400" />
+                  Soldier Landlords Roster
+                </button>
+
+                <div className="pt-3 px-3 py-1 text-[11px] font-bold text-emerald-500/80 uppercase tracking-wider">
+                  Financials & Operations
+                </div>
+                <button
+                  onClick={() => setActiveTab('service_charges')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'service_charges' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <DollarSign className="w-4 h-4 mr-3 text-emerald-400" />
+                  Service Charge Setup (₦10k)
+                </button>
+                <button
+                  onClick={() => setActiveTab('gateways')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'gateways' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <CreditCard className="w-4 h-4 mr-3 text-emerald-400" />
+                  Payment & SMS Gateways
+                </button>
+                <button
+                  onClick={() => setActiveTab('notifications')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'notifications' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <Bell className="w-4 h-4 mr-3 text-emerald-400" />
+                  SMS & Broadcast Composer
+                </button>
+                <button
+                  onClick={() => setActiveTab('tenancy_agreement')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'tenancy_agreement' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <FileText className="w-4 h-4 mr-3 text-emerald-400" />
+                  Tenancy Legal Generator
+                </button>
+              </>
+            )}
+
+            {currentRole === 'soldier_landlord' && (
+              <>
+                <div className="px-3 py-1 text-[11px] font-bold text-emerald-500/80 uppercase tracking-wider">
+                  Landlord Controls
+                </div>
+                <button
+                  onClick={() => setActiveTab('landlord_property')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'landlord_property' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <Home className="w-4 h-4 mr-3 text-emerald-400" />
+                  My Allocated Apartment
+                </button>
+                <button
+                  onClick={() => setActiveTab('tenancy_agreement')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'tenancy_agreement' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <FileText className="w-4 h-4 mr-3 text-emerald-400" />
+                  Tenancy Agreement Generator
+                </button>
+                <button
+                  onClick={() => setActiveTab('landlord_remittance')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'landlord_remittance' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <CreditCard className="w-4 h-4 mr-3 text-emerald-400" />
+                  Rent Remittances & Statements
+                </button>
+              </>
+            )}
+
+            {currentRole === 'resident_tenant' && (
+              <>
+                <div className="px-3 py-1 text-[11px] font-bold text-emerald-500/80 uppercase tracking-wider">
+                  Resident Services
+                </div>
+                <button
+                  onClick={() => setActiveTab('tenant_bills')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'tenant_bills' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <CreditCard className="w-4 h-4 mr-3 text-emerald-400" />
+                  Pay Service Charge (₦10,000)
+                </button>
+                <button
+                  onClick={() => setActiveTab('tenant_electricity')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'tenant_electricity' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <Zap className="w-4 h-4 mr-3 text-emerald-400" />
+                  STS Electricity Meter Token
+                </button>
+                <button
+                  onClick={() => setActiveTab('tenant_visitor_pass')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'tenant_visitor_pass' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <KeyRound className="w-4 h-4 mr-3 text-emerald-400" />
+                  Sentry Gate Visitor Pass
+                </button>
+                <button
+                  onClick={() => setActiveTab('tenant_maintenance')}
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'tenant_maintenance' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+                >
+                  <Wrench className="w-4 h-4 mr-3 text-emerald-400" />
+                  Facility Maintenance Request
+                </button>
+              </>
+            )}
+
+            <div className="pt-3 px-3 py-1 text-[11px] font-bold text-emerald-500/80 uppercase tracking-wider">
+              Account
+            </div>
+            <button
+              onClick={() => setActiveTab('user_settings')}
+              className={`w-full flex items-center px-3 py-2.5 rounded-lg text-left font-medium transition ${activeTab === 'user_settings' ? 'bg-emerald-800/90 text-white shadow-md' : 'text-slate-300 hover:bg-emerald-950/80 hover:text-white'}`}
+            >
+              <Settings className="w-4 h-4 mr-3 text-emerald-400" />
+              User Profile & Settings
+            </button>
+          </nav>
+
+          <div className="p-4 border-t border-emerald-900/50 bg-[#030d07] flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">
+                {currentRole === 'super_admin' ? 'HQ' : (currentRole === 'soldier_landlord' ? 'SL' : 'RT')}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-semibold text-white truncate">
+                  {currentRole === 'super_admin' ? 'HQ Admin Officer' : (currentRole === 'soldier_landlord' ? 'Col. I. Yusuf' : 'David Johnson')}
+                </p>
+                <p className="text-[10px] text-emerald-400 truncate">
+                  {currentRole === 'super_admin' ? 'Command Level 1' : (currentRole === 'soldier_landlord' ? 'NA/18242' : 'L2-B14-B')}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => showToast('Session Locked')}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-emerald-900/50 rounded"
+              title="Logout / Lock"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
+
+        {/* MAIN CONTENT AREA - Crisp White Background & Dark Slate */}
+        <main className="flex-1 bg-white flex flex-col overflow-y-auto">
+          {toastMessage && (
+            <div className="fixed top-12 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-xl border border-emerald-500/40 flex items-center space-x-3 text-sm animate-bounce">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <span className="font-medium">{toastMessage}</span>
+            </div>
+          )}
+
+          <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between shadow-sm">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                {activeTab === 'apartments' && '400 Apartments Directory (8 Zoned Lanes)'}
+                {activeTab === 'tenants' && 'Estate Residents & Tenants Master List'}
+                {activeTab === 'landlords' && 'Soldier Landlords Master Allocation Roster'}
+                {activeTab === 'service_charges' && 'Service Charge Setup & Tariff Breakdown'}
+                {activeTab === 'gateways' && 'API Gateways (BulkSMSNigeria, Paystack, Flutterwave)'}
+                {activeTab === 'notifications' && 'Broadcast & SMS Notification Composer'}
+                {activeTab === 'tenancy_agreement' && 'Official Tenancy Agreement Legal Generator'}
+                {activeTab === 'user_settings' && 'User Account & Security Settings'}
+                {activeTab === 'landlord_property' && 'Landlord Property Allocation Details'}
+                {activeTab === 'landlord_remittance' && 'Rent Remittances & Financial Records'}
+                {activeTab === 'tenant_bills' && 'Pay Service Charge (₦10,000 / Month)'}
+                {activeTab === 'tenant_electricity' && 'STS Prepaid Electricity Token Recharging'}
+                {activeTab === 'tenant_visitor_pass' && 'Single-Use Sentry Gate Visitor QR Pass'}
+                {activeTab === 'tenant_maintenance' && 'Facility Maintenance & Work Order Dispatch'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Port Harcourt Post-Housing Development Limited (PHDL) • Operational Management Console
+              </p>
             </div>
 
-            {/* Exit & Landing Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <button
-                type="button"
-                onClick={() => setCurrentView('landing')}
-                style={{ padding: '0.45rem 0.85rem', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Landing Page
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('landing')}
-                style={{ padding: '0.45rem 0.85rem', borderRadius: '6px', backgroundColor: '#be123c', border: 'none', color: '#ffffff', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <LogOut size={14} /> Exit
-              </button>
+            <div className="flex items-center space-x-3">
+              <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+                Estate Telemetry: Normal
+              </div>
             </div>
           </header>
 
-          {/* ========================================================================= */}
-          {/* 2. BODY LAYOUT (DARK SIDEBAR + CLEAN WHITE DASHBOARD)                     */}
-          {/* ========================================================================= */}
-          <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 60px)' }}>
-            
-            {/* DARK SIDEBAR */}
-            <aside style={{
-              width: '260px',
-              backgroundColor: '#05140b',
-              borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-              padding: '1.25rem 0.75rem',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              color: '#ffffff',
-              flexShrink: 0
-            }}>
-              <div>
-                {/* Active User Card in Sidebar */}
-                <div style={{
-                  backgroundColor: 'rgba(21, 128, 61, 0.18)',
-                  border: '1px solid rgba(245, 158, 11, 0.35)',
-                  borderRadius: '10px',
-                  padding: '0.85rem',
-                  marginBottom: '1.25rem'
-                }}>
-                  <div style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: 800, textTransform: 'uppercase' }}>
-                    {currentConfig.roleTitle}
+          <div className="p-8 space-y-6 flex-1">
+            {/* MODULE 1: ALL 400 APARTMENTS (8 LANES) */}
+            {activeTab === 'apartments' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Total Inventory</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">400 Flats</p>
+                    <p className="text-xs text-slate-500 mt-0.5">100 Blocks across 8 Lanes</p>
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff', marginTop: '0.2rem' }}>
-                    {currentConfig.name}
+                  <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 shadow-sm">
+                    <p className="text-xs font-semibold text-emerald-800 uppercase">Occupied Flats</p>
+                    <p className="text-2xl font-bold text-emerald-900 mt-1">
+                      {apartments.filter(a => a.status === 'occupied').length}
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-0.5">
+                      {Math.round((apartments.filter(a => a.status === 'occupied').length / 400) * 100)}% Occupancy Rate
+                    </p>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.15rem' }}>
-                    {currentConfig.serviceNo} • {currentConfig.flat}
+                  <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200 shadow-sm">
+                    <p className="text-xs font-semibold text-blue-800 uppercase">Available / Vacant</p>
+                    <p className="text-2xl font-bold text-blue-900 mt-1">
+                      {apartments.filter(a => a.status === 'vacant').length}
+                    </p>
+                    <p className="text-xs text-blue-700 mt-0.5">Ready for immediate tenancy</p>
+                  </div>
+                  <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200 shadow-sm">
+                    <p className="text-xs font-semibold text-amber-800 uppercase">Under Maintenance</p>
+                    <p className="text-2xl font-bold text-amber-900 mt-1">
+                      {apartments.filter(a => a.status === 'maintenance').length}
+                    </p>
+                    <p className="text-xs text-amber-700 mt-0.5">Facility renovation active</p>
                   </div>
                 </div>
 
-                {/* Sidebar Navigation Links */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  {currentTabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                      <button
-                        type="button"
-                        key={tab.id}
-                        onClick={() => { setActiveTab(tab.id); setMobileSidebarOpen(false); }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.65rem',
-                          padding: '0.7rem 0.85rem',
-                          borderRadius: '8px',
-                          backgroundColor: isActive ? '#15803d' : 'transparent',
-                          border: isActive ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid transparent',
-                          color: isActive ? '#ffffff' : '#94a3b8',
-                          fontWeight: isActive ? 800 : 600,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        <Icon size={18} color={isActive ? '#fef08a' : '#94a3b8'} />
-                        <span>{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Sidebar Footer Indicator */}
-              <div style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.35)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '8px',
-                padding: '0.75rem',
-                fontSize: '0.75rem',
-                color: '#94a3b8'
-              }}>
-                <div style={{ color: '#4ade80', fontWeight: 800 }}>● 400 FLATS • 8 LANES</div>
-                <div>Unity Estate, Kurudu</div>
-              </div>
-            </aside>
-
-            {/* ======================================================================= */}
-            {/* 3. CLEAN WHITE DASHBOARD MAIN CONTENT AREA                              */}
-            {/* ======================================================================= */}
-            <main style={{
-              flex: 1,
-              backgroundColor: '#f8fafc',
-              padding: 'clamp(1.25rem, 3vw, 2.5rem)',
-              overflowY: 'auto',
-              color: '#0f172a'
-            }}>
-              
-              {/* Clean White Top Overview Banner */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '1.25rem 1.5rem',
-                marginBottom: '1.75rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-              }}>
-                <div>
-                  <div style={{ color: '#15803d', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {currentConfig.rank} • {currentConfig.lane}
-                  </div>
-                  <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', margin: '0.2rem 0' }}>
-                    {currentTabs.find(t => t.id === activeTab)?.label || 'Dashboard'}
-                  </h1>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                    Unity Estate, Kurudu, Abuja — Overseeing 400 Flats (100 Houses across 8 Zoned Lanes).
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '0.35rem 0.75rem', borderRadius: '6px', fontWeight: 800, fontSize: '0.78rem', border: '1px solid #bbf7d0' }}>
-                    ● 2026 ESTATE PORTAL ACTIVE
-                  </span>
-                </div>
-              </div>
-
-              {/* ===================================================================== */}
-              {/* ROLE 1: SOLDIER LANDLORD SCREENS                                      */}
-              {/* ===================================================================== */}
-              {currentRole === 'soldier' && (
-                <div>
-                  {activeTab === 'overview' && (
-                    <div>
-                      {/* Metric Cards */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Statutory Allocation Equity</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#15803d', margin: '0.25rem 0' }}>1 Flat</div>
-                          <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 700 }}>100% Amortized (Statutory Limit)</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Annual Rental Inflow</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f172a', margin: '0.25rem 0' }}>₦1,800,000</div>
-                          <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700 }}>Next Remittance: 1st Oct 2026</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Active Tenant</div>
-                          <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0.25rem 0' }}>Dr. Emeka Okafor</div>
-                          <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>Verified Lease Agreement</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Pension Deduction Sync</div>
-                          <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#15803d', margin: '0.25rem 0' }}>N/12849</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Armed Forces Bank Verified</div>
-                        </div>
-                      </div>
-
-                      {/* Quick Actions Bar */}
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-                        <button type="button" onClick={() => setActiveTab('eoi')} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Plus size={16} /> Apply for New EOI Housing Allocation
-                        </button>
-                        <button type="button" onClick={() => handleExportCSV('Officer_Remittance_Ledger', 'Date,Tenant,Unit,Gross,Levy,Net\n2026-09-01,Dr. Emeka Okafor,Lane 3 H14-B,150000,10000,140000\n2026-08-01,Dr. Emeka Okafor,Lane 3 H14-B,150000,10000,140000')} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#ffffff', color: '#0f172a', fontWeight: 700, border: '1px solid #cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Download size={16} /> Export Remittance Statement (CSV)
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'equity' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.35rem' }}>Statutory Housing Deed of Allocation</h3>
-                          <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>Certificate issued by Post-Housing Development Limited under the Armed Forces Welfare Scheme.</p>
-                        </div>
-                        <button type="button" onClick={() => window.print()} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Printer size={16} /> Print Official Certificate
-                        </button>
-                      </div>
-                      
-                      <div style={{ border: '2px solid #cbd5e1', borderRadius: '12px', padding: '2rem', backgroundColor: '#fafaf9', position: 'relative' }}>
-                        <div style={{ textAlign: 'center', borderBottom: '2px solid #15803d', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#b45309', letterSpacing: '0.08em', textTransform: 'uppercase' }}>POST-HOUSING DEVELOPMENT LIMITED (PHDL)</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '0.25rem' }}>CERTIFICATE OF STATUTORY HOMEOWNERSHIP</div>
-                          <div style={{ fontSize: '0.82rem', color: '#64748b' }}>DEED NO: PHDL/2026/KURUDU/L3-H14-B</div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                          <div><strong style={{ color: '#64748b' }}>Beneficiary Officer:</strong><div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>Major Ibrahim Danjuma</div></div>
-                          <div><strong style={{ color: '#64748b' }}>Service / Force ID:</strong><div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>N/12849</div></div>
-                          <div><strong style={{ color: '#64748b' }}>Allocated Unit:</strong><div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#15803d' }}>House 14, Flat B (Lane 3)</div></div>
-                          <div><strong style={{ color: '#64748b' }}>Scheme & Sector:</strong><div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>Unity Estate (Kurudu, Abuja)</div></div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '48px', height: '48px', backgroundColor: '#e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <QrCode size={36} color="#0f172a" />
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Cryptographically Verified<br />Official Armed Forces Seal</div>
-                          </div>
-                          <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#15803d', fontWeight: 800 }}>
-                            AUTHORIZED BY BOARD OF DIRECTORS
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'eoi' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>Expression of Interest (EOI) Housing Application</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Submit an expression of interest for residential apartment equity under the statutory armed forces housing quota.</p>
-                      
-                      <form onSubmit={(e) => { e.preventDefault(); showToast('EOI Application submitted successfully to PHDL Allocation Board!'); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Target Scheme:</label>
-                          <select value={eoiScheme} onChange={(e) => setEoiScheme(e.target.value)} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}>
-                            <option value="Unity Estate (Kurudu, Abuja)">Unity Estate (Kurudu, Abuja) - 400 Flats</option>
-                            <option value="Lagos Officers Enclave (Victoria Island)">Lagos Officers Enclave (Victoria Island)</option>
-                            <option value="Kaduna Northern Command Enclave">Kaduna Northern Command Enclave</option>
-                            <option value="Port Harcourt Palms Scheme">Port Harcourt Palms Scheme</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Preferred Lane / Sector:</label>
-                          <select style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}>
-                            <option>Lane 1 - General's Boulevard (36 Flats)</option>
-                            <option>Lane 2 - Brigade Way (68 Flats)</option>
-                            <option>Lane 3 - Command Avenue (72 Flats)</option>
-                            <option>Lane 4 - Victory Crescent (72 Flats)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Military ID / Passport Scan:</label>
-                          <input type="file" style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px dashed #cbd5e1', fontSize: '0.85rem' }} />
-                        </div>
-
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <button type="submit" style={{ padding: '0.85rem 2rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                            Submit Formal EOI Application &rarr;
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-
-                  {activeTab === 'idcard' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem' }}>Digital Officer Landlord Card</h3>
-                      <div style={{ width: '380px', maxWidth: '100%', borderRadius: '16px', background: 'linear-gradient(135deg, #071a0b 0%, #15803d 100%)', color: '#fff', padding: '1.5rem', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                          <div style={{ fontWeight: 900, color: '#fef08a' }}>PHDL LANDLORD PASS</div>
-                          <Shield size={22} color="#fbbf24" />
-                        </div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>Major Ibrahim Danjuma</div>
-                        <div style={{ fontSize: '0.8rem', color: '#86efac' }}>Service No: N/12849</div>
-                        <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                          <span>House 14, Flat B (Lane 3)</span>
-                          <span style={{ color: '#fef08a' }}>VERIFIED ACTIVE</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'tenants' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Active Tenant Directory</h3>
-                        <button type="button" onClick={() => showToast('Lease Agreement PDF downloaded.')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', backgroundColor: '#15803d', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.82rem' }}>
-                          <Download size={14} /> Download Lease Agreement
-                        </button>
-                      </div>
-                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>Dr. Emeka Okafor</div>
-                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Phone: 0802 111 2233 • Email: emeka.okafor@consultant.ng</div>
-                          </div>
-                          <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '0.3rem 0.65rem', borderRadius: '6px', fontWeight: 800, fontSize: '0.75rem' }}>VERIFIED LEASE</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'remittance' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>Rent Remittances & Pension Ledger</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Direct synchronization with Military Pension Board and personal Armed Forces Bank accounts.</p>
-                      <button type="button" onClick={() => showToast('Remittance withdrawal request queued for settlement.')} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                        Request Instant Remittance Payout (₦150,000) &rarr;
-                      </button>
-                    </div>
-                  )}
-
-                  {activeTab === 'maintenance' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>Maintenance Levies Oversight</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem' }}>House 14, Flat B monthly maintenance levy (₦10,000) is paid in advance.</p>
-                    </div>
-                  )}
-
-                  {activeTab === 'settings' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem' }}>Officer Account Profile</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                        <div><strong>Officer:</strong> Major Ibrahim Danjuma</div>
-                        <div><strong>Force No:</strong> N/12849</div>
-                        <div><strong>Phone:</strong> 0803 456 7890</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ===================================================================== */}
-              {/* ROLE 2: RESIDENT TENANT SCREENS                                       */}
-              {/* ===================================================================== */}
-              {currentRole === 'tenant' && (
-                <div>
-                  {activeTab === 'overview' && (
-                    <div>
-                      {/* Metric Cards */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Monthly Service Levy</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#15803d', margin: '0.25rem 0' }}>₦10,000</div>
-                          <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>Status: Settled (Current Month)</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Prepaid Electricity Units</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0284c7', margin: '0.25rem 0' }}>148.5 kWh</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Meter: 4501-9824-0012</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Active Gate Pass</div>
-                          <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#b45309', margin: '0.25rem 0' }}>{activePassCode}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Valid for 24 Hours at Main Gate</div>
-                        </div>
-                      </div>
-
-                      {/* Pay Service Charge Action Banner */}
-                      <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>
-                            Mandatory Estate Maintenance Levy (₦10,000 / Month)
-                          </h3>
-                          <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
-                            Covers 650 kVA generator diesel, 24/7 armed sentry guards, water pumping, and sanitation.
-                          </p>
-                        </div>
-                        <button type="button" onClick={() => setPaymentModalOpen(true)} style={{ padding: '0.7rem 1.4rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <CreditCard size={16} /> Pay ₦10,000 Now &rarr;
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'service-charge' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem' }}>Service Charge Invoices & Receipts</h3>
-                          <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>Statutory estate maintenance levy of ₦10,000 monthly.</p>
-                        </div>
-                        <button type="button" onClick={() => setPaymentModalOpen(true)} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                          Pay ₦10,000 Online &rarr;
-                        </button>
-                      </div>
-
-                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontWeight: 800, color: '#0f172a' }}>September 2026 Estate Levy</div>
-                          <div style={{ fontSize: '0.82rem', color: '#64748b' }}>House 14, Flat B • Reconciled via Paystack</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 800, color: '#15803d' }}>₦10,000 (PAID)</div>
-                          <button type="button" onClick={() => showToast('Receipt downloaded.')} style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}>Download Receipt</button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'electricity' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>Digital Electricity Meter Recharge</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Meter Number: <strong>4501-9824-0012</strong> • Current Balance: <strong>148.5 kWh</strong></p>
-                      
-                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <input
-                          type="number"
-                          value={meterAmount}
-                          onChange={(e) => setMeterAmount(Number(e.target.value))}
-                          style={{ padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1', width: '200px' }}
-                          placeholder="Amount in Naira"
-                        />
-                        <button type="button" onClick={() => { setGeneratedToken('4589-2301-8841-0023-9912'); showToast('20-Digit Electricity Token Generated!'); }} style={{ padding: '0.7rem 1.5rem', borderRadius: '8px', backgroundColor: '#0284c7', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                          Generate 20-Digit STS Token &rarr;
-                        </button>
-                      </div>
-
-                      {generatedToken && (
-                        <div style={{ padding: '1.25rem', borderRadius: '10px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 800 }}>GENERATED STS TOKEN (UNITS: ~78.4 kWh)</div>
-                          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.05em', margin: '0.35rem 0' }}>{generatedToken}</div>
-                          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Key into your smart meter keypad and press Enter.</div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTab === 'visitor-pass' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>Generate Single-Use Visitor QR Gate Pass</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Create verified gate entry passes for guests, cabs, and delivery drivers at the Main Gate Sentry barrier.</p>
-                      
-                      <form onSubmit={(e) => { e.preventDefault(); const newCode = `GEN-${Math.floor(1000 + Math.random() * 9000)}-QR`; setActivePassCode(newCode); showToast(`Gate Pass ${newCode} generated & SMS dispatched!`); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Visitor Full Name:</label>
-                          <input type="text" required value={visitorName} onChange={(e) => setVisitorName(e.target.value)} placeholder="e.g. Engr. Kola Alabi" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Vehicle Plate (Optional):</label>
-                          <input type="text" value={visitorPlate} onChange={(e) => setVisitorPlate(e.target.value)} placeholder="e.g. ABC-123-XY" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Visitor Phone Number:</label>
-                          <input type="tel" required value={visitorPhone} onChange={(e) => setVisitorPhone(e.target.value)} placeholder="0803 000 0000" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                        </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <button type="submit" style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                            Generate & Send QR Pass via SMS &rarr;
-                          </button>
-                        </div>
-                      </form>
-
-                      {activePassCode && (
-                        <div style={{ border: '2px dashed #15803d', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#f0fdf4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                          <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#15803d' }}>ACTIVE GATE PASS (24-HR SINGLE ENTRY)</div>
-                            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a', margin: '0.25rem 0' }}>{activePassCode}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Destination: House 14, Flat B (Lane 3)</div>
-                          </div>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button type="button" onClick={() => showToast('Pass link copied for WhatsApp sharing!')} style={{ padding: '0.55rem 1rem', borderRadius: '6px', backgroundColor: '#15803d', color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
-                              <Share2 size={14} /> Share WhatsApp
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTab === 'maintenance' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>Resident Maintenance Dispatch Desk</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Submit and track facility repair tickets with on-duty estate artisans.</p>
-                      
-                      <form onSubmit={(e) => { e.preventDefault(); setTicketsList([{ id: `TKT-${Math.floor(100 + Math.random() * 900)}`, category: ticketCategory, desc: ticketDescription, priority: ticketPriority, status: 'Queued', date: 'Today' }, ...ticketsList]); setTicketDescription(''); showToast('Maintenance ticket dispatched to Duty Engineer!'); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Fault Category:</label>
-                          <select value={ticketCategory} onChange={(e) => setTicketCategory(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                            <option>Plumbing & Borehole</option>
-                            <option>Electrical & Metering</option>
-                            <option>Carpentry & Roof</option>
-                            <option>Sanitation & Drainage</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Urgency Level:</label>
-                          <select value={ticketPriority} onChange={(e) => setTicketPriority(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                            <option>High (Immediate Dispatch)</option>
-                            <option>Medium (Within 24 Hours)</option>
-                            <option>Low (Routine Maintenance)</option>
-                          </select>
-                        </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Describe Fault Details:</label>
-                          <textarea required value={ticketDescription} onChange={(e) => setTicketDescription(e.target.value)} rows={3} placeholder="Provide details of the issue..." style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                        </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <button type="submit" style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                            Submit Maintenance Ticket &rarr;
-                          </button>
-                        </div>
-                      </form>
-
-                      {/* Ticket History */}
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.75rem' }}>Active Tickets</h4>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {ticketsList.map((t, idx) => (
-                          <div key={idx} style={{ padding: '0.85rem 1rem', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#0f172a' }}>{t.id} • {t.category} ({t.priority} Priority)</div>
-                              <div style={{ fontSize: '0.82rem', color: '#64748b' }}>{t.desc}</div>
-                            </div>
-                            <span style={{ backgroundColor: t.status === 'Resolved' ? '#dcfce7' : '#fef3c7', color: t.status === 'Resolved' ? '#15803d' : '#b45309', padding: '0.25rem 0.6rem', borderRadius: '4px', fontWeight: 800, fontSize: '0.72rem' }}>{t.status}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'broadcasts' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem' }}>Estate Community Notice Board</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ borderLeft: '4px solid #15803d', paddingLeft: '1rem' }}>
-                          <div style={{ fontWeight: 800, color: '#0f172a' }}>⚡ Central Diesel Generator Operational Schedule</div>
-                          <div style={{ fontSize: '0.85rem', color: '#64748b' }}>650 kVA Generator will power all 400 flats from 7:00 PM to 6:00 AM daily.</div>
-                        </div>
-                        <div style={{ borderLeft: '4px solid #0284c7', paddingLeft: '1rem' }}>
-                          <div style={{ fontWeight: 800, color: '#0f172a' }}>💧 Water Treatment & Pumping Hours</div>
-                          <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Borehole filtration pumps run 6:00 AM–9:00 AM & 5:00 PM–8:00 PM daily.</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'idcard' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem' }}>Digital Resident Identity Card</h3>
-                      <div style={{ width: '380px', maxWidth: '100%', borderRadius: '16px', background: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)', color: '#fff', padding: '1.5rem', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                          <div style={{ fontWeight: 900, color: '#fef08a' }}>PHDL RESIDENT PASS</div>
-                          <Home size={22} color="#fef08a" />
-                        </div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>Dr. Emeka Okafor</div>
-                        <div style={{ fontSize: '0.8rem', color: '#e0f2fe' }}>Tenant ID: PHDL/CIV/092</div>
-                        <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                          <span>House 14, Flat B (Lane 3)</span>
-                          <span style={{ color: '#fef08a' }}>RFID CLEARED</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'settings' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem' }}>Resident Profile & Credentials</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                        <div><strong>Resident:</strong> Dr. Emeka Okafor</div>
-                        <div><strong>Phone:</strong> 0802 111 2233</div>
-                        <div><strong>Apartment:</strong> House 14, Flat B (Lane 3)</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ===================================================================== */}
-              {/* ROLE 3: SUPERADMIN HQ SCREENS                                         */}
-              {/* ===================================================================== */}
-              {currentRole === 'admin' && (
-                <div>
-                  {activeTab === 'overview' && (
-                    <div>
-                      {/* Master HQ Metrics */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Total Residential Flats</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#15803d', margin: '0.25rem 0' }}>400 Units</div>
-                          <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>100 Houses across 8 Zoned Lanes</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Monthly Service Pool</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#b45309', margin: '0.25rem 0' }}>₦4,000,000</div>
-                          <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>98.4% Reconciled (₦3.94M)</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Main Gate RFID Tags</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0284c7', margin: '0.25rem 0' }}>372 Passes</div>
-                          <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>Zero Security Breaches</div>
-                        </div>
-
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Nationwide Schemes</div>
-                          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#dc2626', margin: '0.25rem 0' }}>18 Schemes</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Kurudu, Abuja Flagship Active</div>
-                        </div>
-                      </div>
-
-                      {/* Admin Quick Action Engine */}
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.75rem' }}>
-                        <button type="button" onClick={() => setActiveTab('allocation-control')} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Award size={16} /> 400 Flats Allocation Engine
-                        </button>
-                        <button type="button" onClick={() => setActiveTab('broadcast-sms')} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#ca8a04', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Send size={16} /> Dispatch Broadcast SMS
-                        </button>
-                        <button type="button" onClick={() => handleExportCSV('PHDL_UnityEstate_400Flats_Registry', 'Lane,House,Flat,Occupant,Rank,Status\nLane 1,House 1,Flat A,Col. M. Bello,Director,Occupied\nLane 3,House 14,Flat B,Maj. I. Danjuma,Major,Occupied')} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#ffffff', color: '#0f172a', fontWeight: 700, border: '1px solid #cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Download size={16} /> Export 400 Flats Master Registry (CSV)
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'allocation-control' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem' }}>400 Flats Housing Allocation Control</h3>
-                          <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>Oversee soldier applications and enforce 1-apartment statutory limit across 8 Lanes.</p>
-                        </div>
-                        <button type="button" onClick={() => setAllocateModalOpen(true)} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Plus size={16} /> Allocate New Apartment
-                        </button>
-                      </div>
-
-                      {/* Search Bar */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative w-64">
+                      <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Search by Lane, House, Flat, or Soldier Name..."
-                        value={flatSearchQuery}
-                        onChange={(e) => setFlatSearchQuery(e.target.value)}
-                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '1.5rem', boxSizing: 'border-box' }}
+                        placeholder="Search Flat code, Tenant, Landlord..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-                        {[
-                          { lane: 'Lane 1', name: "General's Blvd", houses: 9, flats: 36, allocated: '36/36' },
-                          { lane: 'Lane 2', name: 'Brigade Way', houses: 17, flats: 68, allocated: '68/68' },
-                          { lane: 'Lane 3', name: 'Command Ave', houses: 18, flats: 72, allocated: '72/72' },
-                          { lane: 'Lane 4', name: 'Victory Cres', houses: 18, flats: 72, allocated: '72/72' },
-                          { lane: 'Lane 5', name: 'Courage Drive', houses: 16, flats: 64, allocated: '64/64' },
-                          { lane: 'Lane 6', name: 'Harmony Lane', houses: 8, flats: 32, allocated: '32/32' },
-                          { lane: 'Lane 7', name: 'Peace Close', houses: 7, flats: 28, allocated: '28/28' },
-                          { lane: 'Lane 8', name: 'Unity Heights', houses: 7, flats: 28, allocated: '28/28' }
-                        ].map((item, idx) => (
-                          <div key={idx} style={{ padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#b45309' }}>
-                              <span>{item.lane}</span>
-                              <span style={{ color: '#15803d' }}>{item.allocated} Units</span>
-                            </div>
-                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem', marginTop: '0.2rem' }}>{item.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{item.houses} Blocks • {item.flats} Total Units</div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
-                  )}
 
-                  {activeTab === 'broadcast-sms' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>SMS & Emergency Broadcast Gateway</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Send real-time instant SMS notifications to phone numbers across all 400 flats or specific zoned lanes.</p>
-                      
-                      <form onSubmit={(e) => { e.preventDefault(); showToast(`Broadcast SMS dispatched to ${broadcastRecipient}!`); setBroadcastMessage(''); setBroadcastTitle(''); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Broadcast Target Channel:</label>
-                          <select value={broadcastRecipient} onChange={(e) => setBroadcastRecipient(e.target.value)} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                            <option>All 400 Flats (Lanes 1 to 8)</option>
-                            <option>Lane 1 - General's Boulevard (36 Flats)</option>
-                            <option>Lane 2 - Brigade Way (68 Flats)</option>
-                            <option>Lane 3 - Command Avenue (72 Flats)</option>
-                            <option>Lane 4 - Victory Crescent (72 Flats)</option>
-                            <option>Lane 5 - Courage Drive (64 Flats)</option>
-                            <option>Lane 6 - Harmony Lane (32 Flats)</option>
-                            <option>Lane 7 - Peace Close (28 Flats)</option>
-                            <option>Lane 8 - Unity Heights (28 Flats)</option>
-                            <option>All Soldier Landlords (Officers Registry)</option>
-                            <option>Sentry Security Desk Only</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Broadcast Heading:</label>
-                          <input type="text" required value={broadcastTitle} onChange={(e) => setBroadcastTitle(e.target.value)} placeholder="e.g. Scheduled Generator Servicing Notice" style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>SMS Message Content (Max 160 chars per SMS unit):</label>
-                          <textarea required rows={4} value={broadcastMessage} onChange={(e) => setBroadcastMessage(e.target.value)} placeholder="Type SMS message..." style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                        </div>
-
-                        <button type="submit" style={{ alignSelf: 'flex-start', padding: '0.85rem 2rem', borderRadius: '8px', backgroundColor: '#ca8a04', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Send size={16} /> Dispatch SMS Broadcast Now
+                    <div className="flex items-center space-x-1 bg-white border border-slate-300 p-1 rounded-lg text-xs font-medium">
+                      <button
+                        onClick={() => setSelectedLane('all')}
+                        className={`px-2.5 py-1 rounded ${selectedLane === 'all' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                      >
+                        All 8 Lanes
+                      </button>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(l => (
+                        <button
+                          key={l}
+                          onClick={() => setSelectedLane(l)}
+                          className={`px-2 py-1 rounded ${selectedLane === l ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                        >
+                          Lane {l}
                         </button>
-                      </form>
+                      ))}
                     </div>
-                  )}
 
-                  {activeTab === 'security-barrier' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem' }}>RFID Barrier Sentry & Defaulter Enforcement</h3>
-                          <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>Automatic gate restriction toggles for service charge defaulters.</p>
-                        </div>
-                      </div>
+                    <select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="bg-white border border-slate-300 text-slate-700 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="occupied">Occupied Only</option>
+                      <option value="vacant">Available / Vacant</option>
+                      <option value="maintenance">Under Maintenance</option>
+                    </select>
+                  </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {defaulters.map((d) => (
-                          <div key={d.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: d.restricted ? '#fff1f2' : '#ffffff' }}>
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#0f172a' }}>{d.flat} • {d.occupant}</div>
-                              <div style={{ fontSize: '0.82rem', color: '#dc2626' }}>Amount Outstanding: {d.amountDue} ({d.months})</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: d.restricted ? '#dc2626' : '#15803d' }}>
-                                {d.restricted ? '● GATE RESTRICTED' : '● RFID CLEARED'}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => exportCsv(
+                        'PHDL_400_Apartments_Directory',
+                        ['Flat Code', 'Lane', 'Block', 'Flat', 'Status', 'Tenant Name', 'Tenant Phone', 'Landlord', 'Landlord Service No', 'Service Charge Status', 'Electricity Meter'],
+                        filteredFlats.map(f => [
+                          f.fullCode, f.lane, f.blockNumber, f.flatCode, f.status,
+                          f.tenantName || 'N/A', f.tenantPhone || 'N/A', f.landlordName, f.landlordServiceNo,
+                          f.serviceChargeStatus, f.electricityMeterNo
+                        ])
+                      )}
+                      className="px-3.5 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 flex items-center shadow-sm"
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
+                      Export Directory CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-6 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500 font-semibold">
+                    <span>Showing {filteredFlats.length} of 400 total apartments</span>
+                    <span>100 Blocks Total • 4 Flats Per Block (Flats A, B, C, D)</span>
+                  </div>
+                  <div className="max-h-[520px] overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className="bg-slate-100 text-slate-700 font-semibold sticky top-0 z-10 border-b border-slate-200">
+                        <tr>
+                          <th className="py-3 px-4">Flat Code</th>
+                          <th className="py-3 px-4">Lane / Location</th>
+                          <th className="py-3 px-4">Occupancy Status</th>
+                          <th className="py-3 px-4">Current Resident Tenant</th>
+                          <th className="py-3 px-4">Soldier Landlord (Allocated)</th>
+                          <th className="py-3 px-4">Service Charge (₦10k)</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredFlats.slice(0, 100).map(apt => (
+                          <tr key={apt.id} className="hover:bg-slate-50 transition">
+                            <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                              {apt.fullCode}
+                            </td>
+                            <td className="py-3 px-4 text-slate-600">
+                              Lane {apt.lane}, Block {apt.blockNumber}, Flat {apt.flatCode}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                                apt.status === 'occupied' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                apt.status === 'vacant' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                'bg-amber-100 text-amber-800 border border-amber-200'
+                              }`}>
+                                {apt.status === 'occupied' ? 'Occupied' : apt.status === 'vacant' ? 'Vacant / Available' : 'Maintenance'}
                               </span>
-                              <button type="button" onClick={() => toggleDefaulterRestriction(d.id)} style={{ padding: '0.4rem 0.85rem', borderRadius: '6px', backgroundColor: d.restricted ? '#15803d' : '#dc2626', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: '0.78rem' }}>
-                                {d.restricted ? 'Lift Lockout' : 'Enforce Gate Lockout'}
+                            </td>
+                            <td className="py-3 px-4">
+                              {apt.tenantName ? (
+                                <div>
+                                  <p className="font-semibold text-slate-900">{apt.tenantName}</p>
+                                  <p className="text-[11px] text-slate-500">{apt.tenantPhone}</p>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">No Active Tenant</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <p className="font-medium text-slate-800">{apt.landlordName}</p>
+                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
+                                {apt.landlordServiceNo}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                apt.serviceChargeStatus === 'paid' ? 'bg-emerald-100 text-emerald-800' :
+                                apt.serviceChargeStatus === 'due' ? 'bg-amber-100 text-amber-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {apt.serviceChargeStatus.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => setInspectApt(apt)}
+                                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded text-[11px] transition"
+                              >
+                                Details
                               </button>
-                            </div>
-                          </div>
+                            </td>
+                          </tr>
                         ))}
-                      </div>
+                      </tbody>
+                    </table>
+                  </div>
+                  {filteredFlats.length > 100 && (
+                    <div className="p-3 bg-slate-50 border-t border-slate-200 text-center text-xs text-slate-500 font-medium">
+                      Showing first 100 matching rows. Use filters above to refine your search across all 400 flats.
                     </div>
                   )}
+                </div>
+              </div>
+            )}
 
-                  {activeTab === 'financial-ledger' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>₦4.0M Monthly Pool Central Ledger</h3>
-                        <button type="button" onClick={() => handleExportCSV('PHDL_Audit_Ledger_September2026', 'Date,Item,Amount,Type,ReconciledBy\n2026-09-14,400 Flats Levy,3940000,Inflow,Paystack Gateway\n2026-09-10,Generator Diesel 10000L,1100000,Outflow,HQ Finance')} style={{ padding: '0.65rem 1.25rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Download size={16} /> Export Financial Audit Statement (CSV)
+            {/* MODULE 2: ESTATE RESIDENTS / TENANTS MASTER LIST */}
+            {activeTab === 'tenants' && (
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Resident Tenants Registry</h3>
+                    <p className="text-xs text-slate-500">Verified civilians and military families residing in PHDL Estate</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => setShowAddTenantModal(true)}
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold flex items-center shadow-sm"
+                    >
+                      <Plus className="w-4 h-4 mr-1.5" />
+                      Onboard New Tenant
+                    </button>
+                    <button
+                      onClick={() => exportCsv(
+                        'PHDL_Resident_Tenants_List',
+                        ['Tenant Name', 'Phone', 'Email', 'Apartment', 'Lane', 'Landlord', 'KYC Status', 'Lease End', 'Service Charge Status'],
+                        tenantsList.map(t => [t.name, t.phone, t.email, t.apartmentCode, t.lane, t.landlordName, t.kycStatus, t.leaseEnd, t.serviceChargeStatus])
+                      )}
+                      className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 flex items-center shadow-sm"
+                    >
+                      <Download className="w-4 h-4 mr-1.5" />
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="py-3 px-4">Tenant Name</th>
+                        <th className="py-3 px-4">Contact Info</th>
+                        <th className="py-3 px-4">Assigned Flat</th>
+                        <th className="py-3 px-4">Soldier Landlord</th>
+                        <th className="py-3 px-4">KYC Status</th>
+                        <th className="py-3 px-4">Lease Expiry</th>
+                        <th className="py-3 px-4">Service Charge</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {tenantsList.slice(0, 50).map(tenant => (
+                        <tr key={tenant.id} className="hover:bg-slate-50 transition">
+                          <td className="py-3 px-4 font-bold text-slate-900 flex items-center">
+                            <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center mr-2.5 text-xs">
+                              {tenant.name.slice(0, 1)}
+                            </div>
+                            {tenant.name}
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">
+                            <div>{tenant.phone}</div>
+                            <div className="text-[10px] text-slate-400">{tenant.email}</div>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-semibold text-emerald-800">
+                            {tenant.apartmentCode}
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
+                            {tenant.landlordName}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              tenant.kycStatus === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {tenant.kycStatus}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">
+                            {tenant.leaseEnd}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              tenant.serviceChargeStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {tenant.serviceChargeStatus}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right space-x-1">
+                            <button
+                              onClick={() => {
+                                setTestSmsRecipient(tenant.phone);
+                                setActiveTab('notifications');
+                                showToast(`Prepared direct SMS broadcast for ${tenant.name}`);
+                              }}
+                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded text-[10px]"
+                            >
+                              Send SMS
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="p-3 bg-slate-50 border-t border-slate-200 text-center text-xs text-slate-500">
+                    Showing 50 of {tenantsList.length} total active residents
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 3: SOLDIER LANDLORDS MASTER DIRECTORY */}
+            {activeTab === 'landlords' && (
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Soldier Landlords Master Allocation Roster</h3>
+                    <p className="text-xs text-slate-500">
+                      Enforcing strict 1-Apartment Statutory Allocation Limit for Military Personnel
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => exportCsv(
+                      'PHDL_Soldier_Landlords_Roster',
+                      ['Service Number', 'Rank', 'Full Name', 'Assigned Apartment', 'Phone', 'Email', 'Allocation Deed', '1-Unit Limit Compliant', 'Bank Account'],
+                      landlordsList.map(l => [l.serviceNo, l.rank, l.name, l.assignedApartment, l.phone, l.email, l.allocationDeed, l.singleUnitCompliant ? 'YES' : 'NO', `${l.bankName} - ${l.bankAccount}`])
+                    )}
+                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 flex items-center shadow-sm"
+                  >
+                    <Download className="w-4 h-4 mr-1.5" />
+                    Export Landlords CSV
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="py-3 px-4">Service Number</th>
+                        <th className="py-3 px-4">Military Officer</th>
+                        <th className="py-3 px-4">Allocated Property</th>
+                        <th className="py-3 px-4">Phone & Email</th>
+                        <th className="py-3 px-4">Statutory 1-Flat Limit</th>
+                        <th className="py-3 px-4">Deed Status</th>
+                        <th className="py-3 px-4">Remittance Bank</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {landlordsList.map(lld => (
+                        <tr key={lld.id} className="hover:bg-slate-50 transition">
+                          <td className="py-3 px-4 font-mono font-bold text-emerald-800">
+                            {lld.serviceNo}
+                          </td>
+                          <td className="py-3 px-4">
+                            <p className="font-bold text-slate-900">{lld.rank} {lld.name}</p>
+                            <span className="text-[10px] text-slate-400">Nigerian Armed Forces</span>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-semibold text-slate-800">
+                            {lld.assignedApartment}
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">
+                            <div>{lld.phone}</div>
+                            <div className="text-[10px] text-slate-400">{lld.email}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[10px] flex items-center w-fit">
+                              <Check className="w-3 h-3 mr-1" />
+                              Compliant (1 Unit)
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold text-[10px]">
+                              {lld.allocationDeed}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-700 text-[11px]">
+                            {lld.bankName} • {lld.bankAccount}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 4: SERVICE CHARGE SETUP & TARIFF CONTROL */}
+            {activeTab === 'service_charges' && (
+              <div className="space-y-6">
+                <div className="bg-emerald-900 text-white p-6 rounded-2xl shadow-md flex flex-wrap items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold">Standard Monthly Service Charge: ₦{tariffs.baseLevy.toLocaleString()}</h3>
+                    <p className="text-xs text-emerald-200 mt-1">
+                      Mandatory statutory maintenance levy billed to all 400 flats on the 1st of every month
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => showToast('Tariff Configuration Saved & Broadcasted')}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold rounded-lg text-xs transition"
+                  >
+                    Save & Update All Tariffs
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b pb-2">
+                      Levy Component Breakdown (₦{tariffs.baseLevy.toLocaleString()})
+                    </h4>
+
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <div className="flex justify-between font-semibold mb-1">
+                          <span className="text-slate-700">Central Diesel Generator & Fueling</span>
+                          <span className="text-emerald-800">₦{tariffs.dieselGenerator.toLocaleString()}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1000"
+                          max="8000"
+                          step="100"
+                          value={tariffs.dieselGenerator}
+                          onChange={e => setTariffs({ ...tariffs, dieselGenerator: Number(e.target.value) })}
+                          className="w-full accent-emerald-600"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between font-semibold mb-1">
+                          <span className="text-slate-700">24/7 Armed Military Sentry & Gate Access</span>
+                          <span className="text-emerald-800">₦{tariffs.militarySentry.toLocaleString()}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1000"
+                          max="5000"
+                          step="100"
+                          value={tariffs.militarySentry}
+                          onChange={e => setTariffs({ ...tariffs, militarySentry: Number(e.target.value) })}
+                          className="w-full accent-emerald-600"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between font-semibold mb-1">
+                          <span className="text-slate-700">Sanitation, Waste Evacuation & Landscaping</span>
+                          <span className="text-emerald-800">₦{tariffs.sanitationWaste.toLocaleString()}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="500"
+                          max="3000"
+                          step="100"
+                          value={tariffs.sanitationWaste}
+                          onChange={e => setTariffs({ ...tariffs, sanitationWaste: Number(e.target.value) })}
+                          className="w-full accent-emerald-600"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between font-semibold mb-1">
+                          <span className="text-slate-700">Water Treatment & Industrial Pumping Plant</span>
+                          <span className="text-emerald-800">₦{tariffs.waterPumping.toLocaleString()}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="500"
+                          max="3000"
+                          step="100"
+                          value={tariffs.waterPumping}
+                          onChange={e => setTariffs({ ...tariffs, waterPumping: Number(e.target.value) })}
+                          className="w-full accent-emerald-600"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between font-semibold mb-1">
+                          <span className="text-slate-700">Streetlighting & Infrastructure Sinking Fund</span>
+                          <span className="text-emerald-800">₦{tariffs.streetlightingReserve.toLocaleString()}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="200"
+                          max="2000"
+                          step="100"
+                          value={tariffs.streetlightingReserve}
+                          onChange={e => setTariffs({ ...tariffs, streetlightingReserve: Number(e.target.value) })}
+                          className="w-full accent-emerald-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide border-b pb-2">
+                      Billing Cycles & Default Penalties
+                    </h4>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Monthly Billing Cutoff Day</label>
+                        <input
+                          type="number"
+                          value={tariffs.dueDateDay}
+                          onChange={e => setTariffs({ ...tariffs, dueDateDay: Number(e.target.value) })}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold"
+                        />
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Invoices are automatically dispatched via SMS on the 1st, overdue by the {tariffs.dueDateDay}th.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Late Payment Surcharge (%)</label>
+                        <input
+                          type="number"
+                          value={tariffs.latePenaltyPercent}
+                          onChange={e => setTariffs({ ...tariffs, latePenaltyPercent: Number(e.target.value) })}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold"
+                        />
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          A {tariffs.latePenaltyPercent}% surcharge (₦{(tariffs.baseLevy * tariffs.latePenaltyPercent / 100).toLocaleString()}) applies to delinquent accounts.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <p className="font-bold text-emerald-900">Total Monthly Estate Revenue Yield</p>
+                        <p className="text-xl font-extrabold text-emerald-800 mt-1">
+                          ₦{(400 * tariffs.baseLevy).toLocaleString()} / month
+                        </p>
+                        <p className="text-[11px] text-emerald-700 mt-0.5">Based on 400 total apartment units in PHDL</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 5: API GATEWAYS */}
+            {activeTab === 'gateways' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* BulkSMSNigeria Settings */}
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex items-center space-x-2 border-b pb-3">
+                      <Smartphone className="w-5 h-5 text-emerald-600" />
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">BulkSMSNigeria Gateway</h4>
+                        <p className="text-[11px] text-slate-500">Live SMS Dispatcher & Token Credit</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">API Token Key</label>
+                        <input
+                          type="password"
+                          value={smsApiKey}
+                          onChange={e => setSmsApiKey(e.target.value)}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Approved Sender ID</label>
+                        <input
+                          type="text"
+                          maxLength={11}
+                          value={smsSenderId}
+                          onChange={e => setSmsSenderId(e.target.value)}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-bold uppercase"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-0.5">Max 11 alphanumeric characters</p>
+                      </div>
+
+                      <div className="p-3 bg-emerald-50 rounded border border-emerald-200">
+                        <span className="text-[11px] text-emerald-700 font-semibold">Live Wallet Balance:</span>
+                        <p className="text-lg font-bold text-emerald-900 mt-0.5">₦{smsBalance.toLocaleString()} ({Math.floor(smsBalance / 3.4)} SMS)</p>
+                      </div>
+
+                      <div className="pt-2 border-t">
+                        <label className="block text-slate-700 font-semibold mb-1">Quick Test SMS Dispatch</label>
+                        <input
+                          type="text"
+                          placeholder="0803XXXXXXX"
+                          value={testSmsRecipient}
+                          onChange={e => setTestSmsRecipient(e.target.value)}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded mb-2 text-xs"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!testSmsRecipient) {
+                              showToast('Please enter a phone number to test');
+                              return;
+                            }
+                            setSmsBalance(prev => prev - 5);
+                            showToast(`Test SMS dispatched to ${testSmsRecipient} via BulkSMSNigeria!`);
+                          }}
+                          className="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded text-xs transition"
+                        >
+                          Send Test SMS (₦3.50)
                         </button>
                       </div>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#15803d' }}>₦3,940,000 / ₦4,000,000 (98.4%)</div>
                     </div>
-                  )}
+                  </div>
 
-                  {activeTab === 'utilities' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>Power Plant & Water Treatment Telemetry</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem' }}>650 kVA Standby Diesel Generator (42% load) • 40,000L Filtered Water Reserve.</p>
+                  {/* Paystack Gateway */}
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex items-center space-x-2 border-b pb-3">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">Paystack Gateway</h4>
+                        <p className="text-[11px] text-slate-500">Service charge & electricity payments</p>
+                      </div>
                     </div>
-                  )}
 
-                  {activeTab === 'nationwide' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem' }}>18 Nationwide Housing Schemes Portfolio</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Abuja (Kurudu), Lagos (VI & Ikeja), Kaduna, Port Harcourt, Enugu, Ibadan.</p>
-                    </div>
-                  )}
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Public Key</label>
+                        <input
+                          type="text"
+                          value={paystackConfig.publicKey}
+                          onChange={e => setPaystackConfig({ ...paystackConfig, publicKey: e.target.value })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-mono text-[11px]"
+                        />
+                      </div>
 
-                  {activeTab === 'settings' && (
-                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem' }}>System & Gateway Settings</h3>
-                      <p style={{ color: '#64748b' }}>Platform Version 2.6 • Active Paystack / Flutterwave Gateways • Twilio SMS Connected</p>
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Secret Key</label>
+                        <input
+                          type="password"
+                          value={paystackConfig.secretKey}
+                          onChange={e => setPaystackConfig({ ...paystackConfig, secretKey: e.target.value })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-mono text-[11px]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Webhook URL</label>
+                        <input
+                          type="text"
+                          value={paystackConfig.webhookUrl}
+                          readOnly
+                          className="w-full p-2 bg-slate-100 border border-slate-200 rounded font-mono text-[10px] text-slate-600"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="font-semibold text-slate-700">Environment Mode</span>
+                        <button
+                          onClick={() => {
+                            setPaystackConfig({ ...paystackConfig, isLive: !paystackConfig.isLive });
+                            showToast(`Paystack switched to ${!paystackConfig.isLive ? 'LIVE' : 'TEST'} mode`);
+                          }}
+                          className={`px-3 py-1 rounded text-xs font-bold ${paystackConfig.isLive ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'}`}
+                        >
+                          {paystackConfig.isLive ? 'LIVE PRODUCTION' : 'TEST SANDBOX'}
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => showToast('Paystack credentials saved & validated')}
+                        className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded text-xs transition"
+                      >
+                        Save Paystack Settings
+                      </button>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Flutterwave Gateway */}
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex items-center space-x-2 border-b pb-3">
+                      <CreditCard className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">Flutterwave Gateway</h4>
+                        <p className="text-[11px] text-slate-500">Secondary / Fallback payment provider</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Public Key</label>
+                        <input
+                          type="text"
+                          value={flutterwaveConfig.publicKey}
+                          onChange={e => setFlutterwaveConfig({ ...flutterwaveConfig, publicKey: e.target.value })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-mono text-[11px]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Secret Key</label>
+                        <input
+                          type="password"
+                          value={flutterwaveConfig.secretKey}
+                          onChange={e => setFlutterwaveConfig({ ...flutterwaveConfig, secretKey: e.target.value })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-mono text-[11px]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Webhook URL</label>
+                        <input
+                          type="text"
+                          value={flutterwaveConfig.webhookUrl}
+                          readOnly
+                          className="w-full p-2 bg-slate-100 border border-slate-200 rounded font-mono text-[10px] text-slate-600"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="font-semibold text-slate-700">Environment Mode</span>
+                        <button
+                          onClick={() => {
+                            setFlutterwaveConfig({ ...flutterwaveConfig, isLive: !flutterwaveConfig.isLive });
+                            showToast(`Flutterwave switched to ${!flutterwaveConfig.isLive ? 'LIVE' : 'TEST'} mode`);
+                          }}
+                          className={`px-3 py-1 rounded text-xs font-bold ${flutterwaveConfig.isLive ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'}`}
+                        >
+                          {flutterwaveConfig.isLive ? 'LIVE PRODUCTION' : 'TEST SANDBOX'}
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => showToast('Flutterwave credentials saved & validated')}
+                        className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded text-xs transition"
+                      >
+                        Save Flutterwave Settings
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-            </main>
+            {/* MODULE 6: NOTIFICATIONS & BROADCASTS */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 className="text-base font-bold text-slate-900 border-b pb-2">Compose Multi-Channel Estate Notice</h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block font-semibold text-slate-700 mb-1">Dispatch Channels</label>
+                        <select
+                          value={broadcastChannel}
+                          onChange={e => setBroadcastChannel(e.target.value as any)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold"
+                        >
+                          <option value="all">All Channels (SMS, Email & In-App Notice)</option>
+                          <option value="sms">Bulk SMS Nigeria Only (Phone Texts)</option>
+                          <option value="email">Email Broadcast Only</option>
+                          <option value="in_app">In-App Notice Board Only</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-slate-700 mb-1">Target Audience</label>
+                        <select
+                          value={broadcastTarget}
+                          onChange={e => setBroadcastTarget(e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold"
+                        >
+                          <option value="all_residents">All 400 Apartment Residents</option>
+                          <option value="lane_1">Lane 1 Residents Only (36 flats)</option>
+                          <option value="lane_2">Lane 2 Residents Only (68 flats)</option>
+                          <option value="lane_3">Lane 3 Residents Only (72 flats)</option>
+                          <option value="lane_4">Lane 4 Residents Only (72 flats)</option>
+                          <option value="landlords_only">Soldier Landlords Only (100 Officers)</option>
+                          <option value="service_charge_defaulters">Service Charge Defaulters Only</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="text-xs space-y-2">
+                      <label className="block font-semibold text-slate-700">Notice Headline / Subject</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Scheduled Generator Power Hours Notice"
+                        value={broadcastTitle}
+                        onChange={e => setBroadcastTitle(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium"
+                      />
+                    </div>
+
+                    <div className="text-xs space-y-2">
+                      <div className="flex justify-between font-semibold text-slate-700">
+                        <span>Message Body (SMS & Notice Content)</span>
+                        <span className="text-slate-500 font-mono">
+                          {broadcastBody.length} chars ({Math.ceil(broadcastBody.length / 160) || 1} SMS Page)
+                        </span>
+                      </div>
+                      <textarea
+                        rows={5}
+                        placeholder="Type the official communication here..."
+                        value={broadcastBody}
+                        onChange={e => setBroadcastBody(e.target.value)}
+                        className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <p className="text-[11px] text-slate-500">Sender ID: <strong className="text-emerald-700">PHDL-ESTATE</strong></p>
+                      <button
+                        onClick={() => {
+                          if (!broadcastBody) {
+                            showToast('Please type a message body before sending');
+                            return;
+                          }
+                          showToast(`Broadcast dispatched successfully to ${broadcastTarget.replace('_', ' ')}!`);
+                          setBroadcastBody('');
+                          setBroadcastTitle('');
+                        }}
+                        className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs flex items-center shadow-md transition"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Dispatch Notice Now
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 text-xs">
+                    <h4 className="font-bold text-slate-900 uppercase tracking-wide border-b pb-2">Quick Standard Templates</h4>
+                    <div className="space-y-2.5">
+                      <button
+                        onClick={() => {
+                          setBroadcastTitle('Monthly Service Charge Billing Advisory');
+                          setBroadcastBody('Dear Resident, your ₦10,000 PHDL Estate monthly service charge for this month is now due. Please settle via the resident portal before the 10th to avoid late fees.');
+                        }}
+                        className="w-full text-left p-3 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 transition"
+                      >
+                        <p className="font-bold text-slate-900">Service Charge Reminder</p>
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">Monthly ₦10,000 levy reminder with payment deadline.</p>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setBroadcastTitle('Sentry Security & 10 PM Curfew Advisory');
+                          setBroadcastBody('Security Alert: In line with PHDL estate security protocol, all visitor gate passes must be pre-generated on the resident portal. Pedestrian gate curfew remains 2200hrs.');
+                        }}
+                        className="w-full text-left p-3 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 transition"
+                      >
+                        <p className="font-bold text-slate-900">Gate Pass & Curfew Advisory</p>
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">Armed sentry check and visitor pass rules.</p>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setBroadcastTitle('Water Treatment Plant Maintenance Schedule');
+                          setBroadcastBody('Notice: Pumping from the central water treatment facility will be temporarily suspended tomorrow between 1000hrs and 1300hrs for routine filter servicing.');
+                        }}
+                        className="w-full text-left p-3 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 transition"
+                      >
+                        <p className="font-bold text-slate-900">Water Plant Maintenance</p>
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">Pumping suspension & maintenance notice.</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 7: TENANCY AGREEMENT LEGAL GENERATOR */}
+            {activeTab === 'tenancy_agreement' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 text-xs">
+                    <h3 className="text-base font-bold text-slate-900 border-b pb-2">Tenancy Contract Parameters</h3>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Landlord (Military Officer)</label>
+                      <input
+                        type="text"
+                        value={agreementData.landlordName}
+                        onChange={e => setAgreementData({ ...agreementData, landlordName: e.target.value })}
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-semibold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Resident Tenant Full Name</label>
+                      <input
+                        type="text"
+                        value={agreementData.tenantName}
+                        onChange={e => setAgreementData({ ...agreementData, tenantName: e.target.value })}
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-semibold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Property Description</label>
+                      <input
+                        type="text"
+                        value={agreementData.propertyDescription}
+                        onChange={e => setAgreementData({ ...agreementData, propertyDescription: e.target.value })}
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded text-slate-800"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Annual Rent (₦)</label>
+                        <input
+                          type="number"
+                          value={agreementData.annualRent}
+                          onChange={e => setAgreementData({ ...agreementData, annualRent: Number(e.target.value) })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Caution Deposit (₦)</label>
+                        <input
+                          type="number"
+                          value={agreementData.cautionFee}
+                          onChange={e => setAgreementData({ ...agreementData, cautionFee: Number(e.target.value) })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Commencement Date</label>
+                        <input
+                          type="date"
+                          value={agreementData.commenceDate}
+                          onChange={e => setAgreementData({ ...agreementData, commenceDate: e.target.value })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Expiry Date</label>
+                        <input
+                          type="date"
+                          value={agreementData.expiryDate}
+                          onChange={e => setAgreementData({ ...agreementData, expiryDate: e.target.value })}
+                          className="w-full p-2 bg-slate-50 border border-slate-300 rounded"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t">
+                      <label className="flex items-center space-x-2 text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={agreementData.sublettingClause}
+                          onChange={e => setAgreementData({ ...agreementData, sublettingClause: e.target.checked })}
+                          className="rounded text-emerald-600"
+                        />
+                        <span>Enforce Strict No-Subletting Clause</span>
+                      </label>
+                      <label className="flex items-center space-x-2 text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={agreementData.sentryCurfewClause}
+                          onChange={e => setAgreementData({ ...agreementData, sentryCurfewClause: e.target.checked })}
+                          className="rounded text-emerald-600"
+                        />
+                        <span>Enforce Military Sentry & ₦10k Service Charge</span>
+                      </label>
+                    </div>
+
+                    <button
+                      onClick={() => window.print()}
+                      className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs flex items-center justify-center shadow transition"
+                    >
+                      <Printer className="w-4 h-4 mr-2" />
+                      Print / Save Legal Agreement
+                    </button>
+                  </div>
+
+                  <div className="lg:col-span-2 bg-white p-8 rounded-xl border border-slate-300 shadow-md text-slate-800 space-y-4 font-serif text-xs leading-relaxed">
+                    <div className="text-center border-b-2 border-slate-900 pb-4">
+                      <div className="flex justify-center mb-1">
+                        <Shield className="w-8 h-8 text-emerald-900" />
+                      </div>
+                      <h2 className="text-base font-bold text-slate-900 uppercase tracking-widest">
+                        PORT HARCOURT POST-HOUSING DEVELOPMENT LIMITED (PHDL)
+                      </h2>
+                      <p className="text-[11px] font-sans font-semibold text-slate-600">
+                        DIRECTORATE OF ARMY POST-HOUSING SCHEME • RESIDENTIAL TENANCY INDENTURE
+                      </p>
+                    </div>
+
+                    <p>
+                      <strong>THIS TENANCY AGREEMENT</strong> is made this <strong>{agreementData.commenceDate}</strong> BETWEEN{' '}
+                      <strong>{agreementData.landlordName}</strong> (hereinafter referred to as the <em>"LANDLORD"</em>) of the one part, AND{' '}
+                      <strong>{agreementData.tenantName}</strong> (hereinafter referred to as the <em>"TENANT"</em>) of the other part.
+                    </p>
+
+                    <div>
+                      <p className="font-bold font-sans uppercase text-[11px] text-slate-900">1. DEMISE AND CONSIDERATION:</p>
+                      <p className="mt-0.5">
+                        The Landlord demises unto the Tenant all that property known as <strong>{agreementData.propertyDescription}</strong> for a term of ONE (1) YEAR commencing on <strong>{agreementData.commenceDate}</strong> and expiring on <strong>{agreementData.expiryDate}</strong> paying therefor the annual rental sum of <strong>₦{agreementData.annualRent.toLocaleString()}</strong>.
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="font-bold font-sans uppercase text-[11px] text-slate-900">2. COVENANTS OF THE TENANT:</p>
+                      <ul className="list-disc pl-5 space-y-1 mt-1">
+                        <li>To punctually pay the statutory monthly PHDL Estate Service Charge of <strong>₦10,000</strong> on or before the 10th of every month for generator fueling, security, and sanitation.</li>
+                        {agreementData.sublettingClause && (
+                          <li><strong>STRICT NO-SUBLETTING:</strong> Not to assign, sublet, or part with possession of the premises or any part thereof without prior written consent of PHDL HQ.</li>
+                        )}
+                        {agreementData.sentryCurfewClause && (
+                          <li>To adhere strictly to military sentry guidelines, registration of domestic staff, and entry protocols for all visitors.</li>
+                        )}
+                      </ul>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8 pt-8 font-sans text-xs">
+                      <div className="border-t border-slate-900 pt-2 text-center">
+                        <p className="font-bold text-slate-900">SIGNED BY THE LANDLORD</p>
+                        <p className="text-[10px] text-slate-500 mt-1">{agreementData.landlordName}</p>
+                      </div>
+                      <div className="border-t border-slate-900 pt-2 text-center">
+                        <p className="font-bold text-slate-900">SIGNED BY THE TENANT</p>
+                        <p className="text-[10px] text-slate-500 mt-1">{agreementData.tenantName}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 8: USER PROFILE & SETTINGS */}
+            {activeTab === 'user_settings' && (
+              <div className="space-y-6 max-w-4xl">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                  <div className="flex items-center space-x-4 border-b pb-4">
+                    <div className="w-14 h-14 rounded-full bg-emerald-800 text-white font-bold text-xl flex items-center justify-center">
+                      {currentRole === 'super_admin' ? 'HQ' : 'US'}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Personal & Security Profile</h3>
+                      <p className="text-xs text-slate-500">Manage account access, contact telemetry, and two-factor credentials</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Full Legal Name</label>
+                      <input
+                        type="text"
+                        defaultValue={currentRole === 'super_admin' ? 'HQ Command Officer' : 'Col. Ibrahim Yusuf'}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Official Email Address</label>
+                      <input
+                        type="email"
+                        defaultValue="command@phdl-estate.mil.ng"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Phone Number (SMS Alerts)</label>
+                      <input
+                        type="text"
+                        defaultValue="08031234567"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Military Rank / Service Number</label>
+                      <input
+                        type="text"
+                        defaultValue="NA/18242"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t space-y-3">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide">Security & Authentication</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">New Password</label>
+                        <input
+                          type="password"
+                          placeholder="••••••••••••"
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Confirm Security PIN (for Gate Pass)</label>
+                        <input
+                          type="password"
+                          placeholder="4-digit PIN"
+                          maxLength={4}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => showToast('User profile & security credentials updated successfully')}
+                      className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs shadow transition"
+                    >
+                      Save Profile Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ROLE VIEW: RESIDENT TENANT SPECIFIC SCREENS */}
+            {activeTab === 'tenant_bills' && (
+              <div className="space-y-6 max-w-3xl">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">Monthly Service Charge Payment</h3>
+                      <p className="text-xs text-slate-500">Flat L2-B14-B • David Johnson</p>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+                      Bill Due: ₦10,000
+                    </span>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-lg space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Diesel Generator Fuel Allocation:</span>
+                      <span className="font-semibold text-slate-800">₦4,500</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Military Sentry & Gate Security:</span>
+                      <span className="font-semibold text-slate-800">₦2,500</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Waste Evacuation & Landscaping:</span>
+                      <span className="font-semibold text-slate-800">₦1,500</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Water Treatment Plant:</span>
+                      <span className="font-semibold text-slate-800">₦1,000</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Streetlighting & Reserve:</span>
+                      <span className="font-semibold text-slate-800">₦500</span>
+                    </div>
+                    <div className="pt-2 border-t flex justify-between font-bold text-sm text-slate-900">
+                      <span>Total Payable:</span>
+                      <span className="text-emerald-700">₦10,000.00</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center space-x-3">
+                    <button
+                      onClick={() => showToast('Connecting to Paystack Gateway... Payment of ₦10,000 confirmed!')}
+                      className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs shadow flex items-center justify-center transition"
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pay with Paystack
+                    </button>
+                    <button
+                      onClick={() => showToast('Connecting to Flutterwave Gateway... Payment of ₦10,000 confirmed!')}
+                      className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs shadow flex items-center justify-center transition"
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pay with Flutterwave
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'tenant_electricity' && (
+              <div className="space-y-6 max-w-2xl">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center space-x-2 border-b pb-3">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                    <h3 className="font-bold text-slate-900 text-base">STS Prepaid Electricity Recharging</h3>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-lg text-xs space-y-2">
+                    <p className="text-slate-500">Assigned Meter Number:</p>
+                    <p className="text-xl font-mono font-bold text-slate-900">0418-2049-8392</p>
+                    <p className="text-[11px] text-slate-500">Tariff Band A • Dedicated Estate Transformer</p>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <label className="block text-slate-700 font-semibold">Recharge Amount (₦)</label>
+                    <input
+                      type="number"
+                      defaultValue={10000}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-900"
+                    />
+                    <button
+                      onClick={() => showToast('STS Token Generated: 4892-0192-3847-1928-3849 (142.8 kWh credited)')}
+                      className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs transition"
+                    >
+                      Purchase STS Units & Generate 20-Digit Token
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'tenant_visitor_pass' && (
+              <div className="space-y-6 max-w-2xl">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center space-x-2 border-b pb-3">
+                    <KeyRound className="w-5 h-5 text-emerald-600" />
+                    <h3 className="font-bold text-slate-900 text-base">Generate Sentry Gate Visitor QR Pass</h3>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Visitor Full Name</label>
+                      <input type="text" placeholder="e.g. Engr. Paul Okon" className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg" />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Visitor Vehicle Plate (Optional)</label>
+                      <input type="text" placeholder="e.g. ABJ-492-AA" className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg uppercase" />
+                    </div>
+                    <button
+                      onClick={() => showToast('Single-Use Gate Access Pass Generated: PHDL-PASS-88421 (Sent via SMS)')}
+                      className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs transition"
+                    >
+                      Generate Single-Use Gate Pass & SMS to Visitor
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'tenant_maintenance' && (
+              <div className="space-y-6 max-w-2xl">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center space-x-2 border-b pb-3">
+                    <Wrench className="w-5 h-5 text-amber-600" />
+                    <h3 className="font-bold text-slate-900 text-base">Facility Maintenance Work Order</h3>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Category</label>
+                      <select className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg">
+                        <option>Plumbing & Water Supply Issue</option>
+                        <option>Electrical Transformer / Feeder Fault</option>
+                        <option>Roofing & Structural Repair</option>
+                        <option>Generator Switchgear Tripping</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Description of Issue</label>
+                      <textarea rows={4} placeholder="Describe the fault..." className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg" />
+                    </div>
+                    <button
+                      onClick={() => showToast('Maintenance ticket logged: #WO-2026-094. Artisan dispatched within 2 hours.')}
+                      className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs transition"
+                    >
+                      Submit Maintenance Dispatch Order
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ROLE VIEW: SOLDIER LANDLORD SPECIFIC SCREENS */}
+            {activeTab === 'landlord_property' && (
+              <div className="space-y-6 max-w-3xl">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">My Statutory Military Property Allocation</h3>
+                      <p className="text-xs text-slate-500">Col. Ibrahim Yusuf (NA/18242)</p>
+                    </div>
+                    <span className="px-3 py-1 rounded bg-emerald-100 text-emerald-800 text-xs font-bold">
+                      Title Deed Verified
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <p className="text-slate-500">Allocated Unit:</p>
+                      <p className="font-mono font-bold text-slate-900 text-base mt-0.5">Lane 2, Block 14, Flat B</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <p className="text-slate-500">Current Tenant:</p>
+                      <p className="font-bold text-slate-900 text-base mt-0.5">David Johnson</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <p className="text-slate-500">Annual Rental Yield:</p>
+                      <p className="font-bold text-emerald-700 text-base mt-0.5">₦1,500,000 / year</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <p className="text-slate-500">Statutory 1-Flat Policy:</p>
+                      <p className="font-bold text-emerald-800 text-base mt-0.5">100% Compliant</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'landlord_remittance' && (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <h3 className="font-bold text-slate-900 text-base border-b pb-3">Rental Income Remittance History</h3>
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold">
+                      <tr>
+                        <th className="py-2.5 px-4">Period</th>
+                        <th className="py-2.5 px-4">Gross Rent</th>
+                        <th className="py-2.5 px-4">Net Remittance</th>
+                        <th className="py-2.5 px-4">Bank Account</th>
+                        <th className="py-2.5 px-4">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      <tr>
+                        <td className="py-3 px-4 font-medium">2026 Annual Rent</td>
+                        <td className="py-3 px-4">₦1,500,000</td>
+                        <td className="py-3 px-4 font-bold text-emerald-800">₦1,500,000</td>
+                        <td className="py-3 px-4">Zenith Bank • 0123456789</td>
+                        <td className="py-3 px-4"><span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[10px]">Settled</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </main>
+      </div>
 
-      {/* ========================================================================= */}
-      {/* 4. MODAL: LIVE PAYMENT GATEWAY MODAL (TENANT ₦10K SERVICE CHARGE)         */}
-      {/* ========================================================================= */}
-      {paymentModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '480px', padding: '2rem', boxShadow: '0 25px 50px rgba(0,0,0,0.4)', position: 'relative' }}>
-            <button type="button" onClick={() => setPaymentModalOpen(false)} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
-              <X size={20} />
-            </button>
-
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
-                <CreditCard size={24} color="#15803d" />
-              </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem' }}>Pay Estate Service Charge</h3>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>Unity Estate, Kurudu • House 14, Flat B</p>
-              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#15803d', marginTop: '0.5rem' }}>₦10,000.00</div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              <button type="button" onClick={() => setPaymentMethod('card')} style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: paymentMethod === 'card' ? '2px solid #15803d' : '1px solid #cbd5e1', backgroundColor: paymentMethod === 'card' ? '#f0fdf4' : '#fff', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>Card</button>
-              <button type="button" onClick={() => setPaymentMethod('transfer')} style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: paymentMethod === 'transfer' ? '2px solid #15803d' : '1px solid #cbd5e1', backgroundColor: paymentMethod === 'transfer' ? '#f0fdf4' : '#fff', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>Bank Transfer</button>
-              <button type="button" onClick={() => setPaymentMethod('ussd')} style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: paymentMethod === 'ussd' ? '2px solid #15803d' : '1px solid #cbd5e1', backgroundColor: paymentMethod === 'ussd' ? '#f0fdf4' : '#fff', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>USSD</button>
-            </div>
-
-            <button type="button" onClick={() => { setPaymentModalOpen(false); showToast('₦10,000 Service Charge Paid Successfully via Paystack!'); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: '0.95rem' }}>
-              Confirm & Pay ₦10,000.00 &rarr;
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 5. MODAL: SUPERADMIN APARTMENT ALLOCATION MODAL                           */}
-      {/* ========================================================================= */}
-      {allocateModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '520px', padding: '2rem', boxShadow: '0 25px 50px rgba(0,0,0,0.4)', position: 'relative' }}>
-            <button type="button" onClick={() => setAllocateModalOpen(false)} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
-              <X size={20} />
-            </button>
-
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.25rem' }}>Allocate Residential Flat</h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>Assign flat under the statutory 1-apartment quota.</p>
-
-            <form onSubmit={(e) => { e.preventDefault(); setAllocateModalOpen(false); showToast(`Allocated ${selectedHouse}, ${selectedFlatUnit} (${selectedLane}) to ${assigneeName}!`); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* MODAL: APARTMENT DETAILS & OCCUPANCY INSPECTION */}
+      {inspectApt && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Assignee Soldier Name & Rank:</label>
-                <input type="text" required value={assigneeName} onChange={(e) => setAssigneeName(e.target.value)} placeholder="e.g. Captain Usman Garba" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                <h3 className="font-bold text-slate-900 text-lg flex items-center">
+                  <Building2 className="w-5 h-5 mr-2 text-emerald-600" />
+                  Flat Inspection: {inspectApt.fullCode}
+                </h3>
+                <p className="text-xs text-slate-500">Lane {inspectApt.lane} • Block {inspectApt.blockNumber} • Flat {inspectApt.flatCode}</p>
               </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Military Service Number:</label>
-                <input type="text" required value={assigneeServiceNo} onChange={(e) => setAssigneeServiceNo(e.target.value)} placeholder="e.g. N/14992" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.5rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Lane:</label>
-                  <select value={selectedLane} onChange={(e) => setSelectedLane(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                    <option>Lane 1 - General's Blvd</option>
-                    <option>Lane 2 - Brigade Way</option>
-                    <option>Lane 3 - Command Ave</option>
-                    <option>Lane 4 - Victory Cres</option>
-                    <option>Lane 5 - Courage Drive</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>House:</label>
-                  <input type="text" value={selectedHouse} onChange={(e) => setSelectedHouse(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.3rem' }}>Unit:</label>
-                  <select value={selectedFlatUnit} onChange={(e) => setSelectedFlatUnit(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                    <option>Flat A</option>
-                    <option>Flat B</option>
-                    <option>Flat C</option>
-                    <option>Flat D</option>
-                  </select>
-                </div>
-              </div>
-
-              <button type="submit" style={{ marginTop: '0.5rem', padding: '0.85rem', borderRadius: '8px', backgroundColor: '#15803d', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
-                Confirm Statutory Flat Allocation &rarr;
+              <button
+                onClick={() => setInspectApt(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-full"
+              >
+                <X className="w-5 h-5" />
               </button>
-            </form>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-slate-500">Occupancy Status:</p>
+                  <p className="font-bold text-slate-900 capitalize mt-0.5">{inspectApt.status}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-slate-500">Service Charge (₦10k):</p>
+                  <p className="font-bold text-emerald-800 uppercase mt-0.5">{inspectApt.serviceChargeStatus}</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+                <p className="text-slate-500">Soldier Landlord (Owner):</p>
+                <p className="font-semibold text-slate-900">{inspectApt.landlordName}</p>
+                <p className="text-[10px] text-emerald-700 font-mono">Service No: {inspectApt.landlordServiceNo}</p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+                <p className="text-slate-500">Resident Tenant:</p>
+                <p className="font-semibold text-slate-900">{inspectApt.tenantName || 'Vacant / No Tenant'}</p>
+                {inspectApt.tenantPhone && <p className="text-[11px] text-slate-600">Phone: {inspectApt.tenantPhone}</p>}
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <p className="text-slate-500">STS Electricity Meter:</p>
+                <p className="font-mono font-bold text-slate-900 mt-0.5">{inspectApt.electricityMeterNo}</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 border-t">
+              <button
+                onClick={() => setInspectApt(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg text-xs"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setApartments(prev => prev.map(a => a.id === inspectApt.id ? {
+                    ...a,
+                    status: a.status === 'occupied' ? 'vacant' : 'occupied',
+                    tenantName: a.status === 'occupied' ? undefined : 'New Resident',
+                    tenantPhone: a.status === 'occupied' ? undefined : '08031234567'
+                  } : a));
+                  setInspectApt(null);
+                  showToast(`Toggled occupancy status for ${inspectApt.fullCode}`);
+                }}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-xs"
+              >
+                Toggle Occupancy Status
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* MODAL: ONBOARD NEW TENANT */}
+      {showAddTenantModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Onboard New Resident Tenant</h3>
+              <button onClick={() => setShowAddTenantModal(false)} className="p-1 text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Full Legal Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Chukwuma Obi"
+                  value={newTenantData.name}
+                  onChange={e => setNewTenantData({ ...newTenantData, name: e.target.value })}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Phone Number (for SMS & Gate)</label>
+                <input
+                  type="text"
+                  placeholder="0803XXXXXXX"
+                  value={newTenantData.phone}
+                  onChange={e => setNewTenantData({ ...newTenantData, phone: e.target.value })}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="name@gmail.com"
+                  value={newTenantData.email}
+                  onChange={e => setNewTenantData({ ...newTenantData, email: e.target.value })}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Assign to Available Flat</label>
+                <select
+                  value={newTenantData.flatCode}
+                  onChange={e => setNewTenantData({ ...newTenantData, flatCode: e.target.value })}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-bold"
+                >
+                  {apartments.filter(a => a.status === 'vacant').slice(0, 20).map(a => (
+                    <option key={a.id} value={a.fullCode}>{a.fullCode} (Lane {a.lane}, Block {a.blockNumber})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t">
+              <button
+                onClick={() => setShowAddTenantModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!newTenantData.name || !newTenantData.phone) {
+                    showToast('Please enter tenant name and phone number');
+                    return;
+                  }
+                  setApartments(prev => prev.map(a => a.fullCode === newTenantData.flatCode ? {
+                    ...a,
+                    status: 'occupied',
+                    tenantName: newTenantData.name,
+                    tenantPhone: newTenantData.phone
+                  } : a));
+                  setShowAddTenantModal(false);
+                  showToast(`Tenant ${newTenantData.name} successfully assigned to ${newTenantData.flatCode}!`);
+                }}
+                className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs"
+              >
+                Complete Onboarding
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
